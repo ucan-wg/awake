@@ -68,26 +68,22 @@ Attacker                 Requester                  Responder
 
 # 3. Detailed Stages
 
-## 3.1 All Parties Subscribe to Channel
+## 3.1 Subscribe to Common Channel
 
-AWAKE begins by all parties listening on a common channel. This channel MAY be public and broadcast to all listeners. It is RECOMMENDED that this channel be 
-
-
-for the root DID. A peer that can issue UCANs must be online and listening on this channel
-
-#### Example
-
-An example pubsub topic may look like:
-
-```
-awake:<topic>#did:key:z6MkgYGF3thn8k1Fv4p4dWXKtsXCnLH7q9yw4QgNPULDmDKB?msg=
-```
-
-💻 (who has a UCAN already) and 📱 (requestor) listen for incoming messages on channel `did:key:zALICE`
+AWAKE begins by all parties listening on a common channel. The channel itself is unimportant: it MAY be public, broadcast to all listeners, be assynchronous, and over any transport. To reduce channel noise, it is RECOMMENDED that this channel be specific to some topic. For instance, a websocket channel on the topic`awake:did:key:zStEZpzSMtTt9k2vszgvCwF4fLQQSyA15W5AQ4z3AR6Bx4eFJ5crJFbuGxKmbma4` MAY be used for messages about resources owned by `did:key:zStEZpzSMtTt9k2vszgvCwF4fLQQSyA15W5AQ4z3AR6Bx4eFJ5crJFbuGxKmbma4`.
 
 ![](../../.gitbook/assets/screen-shot-2021-05-01-at-6.26.40-pm.png)
 
-### **Step 2: Consumer Broadcasts an Temporary Public Key**
+```
+Attacker                 Requester                  Responder
+   │                         │                          │ 
+   │         Temp DID        │         Temp DID         │ (1a)
+   │       Auth Criterea     │      Auth Criterea       │ (1b)
+   │◄────────────────────────┼─────────────────────────►│
+   ⋮                         ⋮                          ⋮
+```
+
+## 3.2 Consumer Broadcasts an Temporary Public Key**
 
 This gives everyone on the channel a 2048-bit RSA public key to send secret data to. Here we call the associated DID `did:key:zTHROWAWAY`.
 
