@@ -99,7 +99,7 @@ In this step, the Requester broadcasts a temporary DID, and some criterea that i
 
 The Requester generates a fresh 2048-bit [RSA-OAEP](https://datatracker.ietf.org/doc/html/rfc3447) key pair. This key pair MUST be referenced as a [`did:key`](https://w3c-ccg.github.io/did-method-key/) in the payload.
 
-This "temporary DID", and MUST only be used for key exchange. It MUST NOT be used for signatures, and MUST NOT be persisted past this one session boostrap (i.e. discard after [Step 2](#33-responder-establishes-point-to-point-session)).
+This "temporary DID", and MUST only be used for key exchange. It MUST NOT be used for signatures, and MUST NOT be persisted past this one session boostrap (i.e. discard after [Step 3](#33-responder-establishes-point-to-point-session)).
 
 ### 3.2.2 Authorization Criterea
 
@@ -133,17 +133,56 @@ The Requester MAY also include validation criterea expected from the Responder. 
 
 **NOTE: The Responder is not yet trusted at this step**
 
-This step 
+```
+Requester                  Responder
+    ⋮                          ⋮
+    │       Authorization      │ (3a)
+    │        Session Key       │ (3b)
+    │◄─────────────────────────┤
+    │                          │
+    ⋮                          ⋮
+```
 
-Since RSA-OAEP is slow and can only hold a small amount of data, we use it to open a secured channel over AES256-GCM.
+In this step, the Responder MUST prove that they have access to the requested resources, and sets up a protected point-to-point connection.
 
-At this step, you **DO NOT KNOW** that the provider is actually our other machine, and not a person-in-the-middle 🦹‍♀️😈 You will _authenticate_ them via a capability check in the next step.
+The temporary RSA key from the previous step MUST be exclusively used for exchanging a 256-bit AES-GCM "session key". RSA is both slow and can only hold a limited number of bytes, so using it to encrypt the payloads of the rest of the session is infeasable.
 
-Note that there is nothing special about AES256-GCM. This key is symmetric and will be available in memory. As such, this protocol gains little from the WebCrypto API aside from potential hardware acceleration (which can be helpful against certain timings attacks).
+```
+         Payload
 
-In a future version, AES-GCM may be replaced with AES-SIV-GCM or XChaCha20-Poly1305.
+       ┌───RSA───┐
+       │         │
+       │ AES-GCM │
+       │    │    │
+       └────┼────┘
+            │
+            │
+            ▼
+┌────────AES-GCM───────┐
+│                      │
+│  ┌───────UCAN─────┐  │
+│  │                │  │
+│  │  fct: AES-GCM  │  │
+│  │  att: []       │  │
+│  │  prf: ...      │  │
+│  │                │  │
+│  └────────────────┘  │
+│                      │
+└──────────────────────┘
+```
+
+### 3.3.1 Key Exchange
+
+The 
+
+
 
 The producer 💻 sends an asymmetrically encrypted AES256-GCM session key to the temporary public key that was broadcast by the consumer. The producer will ONLY respond to ONE request over this channel at a time. It is locked to the one temporary DID until the AWAKE completes successfully, is rejected, or times out. New connections MUST use new randomly generated keys temporary DIDs and AES-GCM session keys. The producer SHOULD track keys that they have already seen, and reject new requests involving them.
+
+
+
+### 3.3.2 Capability Validation
+
 
 ### **4. Session Key Negotiation over UCAN**
 
@@ -237,3 +276,8 @@ The temporary key is an RSA-OAEP key due to its ubquity, including support for n
 Why not ECC?
 
 RSA is used because it is available with a nonexportable key in browsers, is ubiquitous on all other systems, and is not considered likely backdoored (the NIST ECCs are [considered highly suspect](http://safecurves.cr.yp.to)).
+
+
+Note that there is nothing special about AES256-GCM. This key is symmetric and will be available in memory. As such, this protocol gains little from the WebCrypto API aside from potential hardware acceleration (which can be helpful against certain timings attacks).
+
+In a future version, AES-GCM may be replaced with AES-SIV-GCM or XChaCha20-Poly1305.
