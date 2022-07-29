@@ -107,7 +107,15 @@ This "temporary DID", and MUST only be used for key exchange. It MUST NOT be use
 
 The Requester MAY also include validation criterea expected from the Responder. This MUST be passed as an array of [UCAN capabilities](https://github.com/ucan-wg/spec#23-capability). The Responder will have to prove access to these capabilties.
 
-## 3.2.3 JSON Example
+### 3.2.3 Payload
+
+| Field   | Value        | Purpose                                        | Required |
+| --------| ------------ | ---------------------------------------------- | -------- |
+| `awake` | `"init"`     | Signal which step of AWAKE this payload is for | Yes      |
+| `did`   |              | The DID of the Requestor this is intended for  | Yes      |
+| `caps`  |              | Capabilities that the Responder MUST provide   | Yes      |
+
+#### 3.2.3.1 JSON Example
 
 ``` javascript
 {
@@ -201,23 +209,23 @@ The validation UCAN MUST NOT be used to delegate any capabilities. This UCAN MUS
 
 ### 3.3.3 Payload
 
-The payload for this step MUST have the 
+| Field   | Value        | Purpose                                                     | Required |
+| --------| ------------ | ----------------------------------------------------------- | -------- |
+| `awake` | `"exchange"` | Signal which step of AWAKE this payload is for              | Yes      |
+| `aud`   |              | The DID of the Requestor this is intended for               | Yes      |
+| `key`   |              | An RSA-encrypted AES key used to encrypt the `ucan` payload | Yes      |
+| `iv`    |              | Initialization vector for the encrypted `ucan` payload      | Yes      |
+| `ucan`  |              | AES-encrypted validation UCAN                               | Yes      |
 
-| Key     | Value        | Purpose   | Required |
-| --------| ------------ | --------- | -------- |
-| `awake` | `"exchange"` |           | Yes      |
-| `aud`   |              |           | Yes      |
-| `key`   |              |           | Yes      |
-| `iv`    |              |           | Yes      |
-| `ucan`  |              |           | Yes      |
+#### 3.3.3.1 JSON Example
 
 ``` javascript
 {
   "awake": "exchange",
   "aud": requesterTempDid,
-  "key": encyptedKey, // AES-GCM encrypted with RSA-OAEP, encoded with base64-padded
-  "iv": bytes, // 12-byte initialization vector, encoded with base64-padded
-  "ucan":  encryptedUcan // UCAN encrypted with AES-GCM
+  "key": encyptedKey,
+  "iv": bytes,
+  "ucan":  encryptedUcan 
 }
 ```
 
