@@ -89,6 +89,7 @@ In this step, the Requester broadcasts a temporary DID, and some criterea that i
 
 ``` javascript
 {
+  "awake": "init",
   "did": didKey, 
   "caps": [ ...requiredCaps ]
 }
@@ -100,22 +101,18 @@ The Requester generates a fresh 2048-bit [RSA-OAEP](https://datatracker.ietf.org
 
 This "temporary DID", and MUST only be used for key exchange. It MUST NOT be used for signatures, and MUST NOT be persisted past this one session boostrap (i.e. discard after [Step 2](#33-responder-establishes-point-to-point-session)).
 
-``` javascript
-{
-  // ...
-  "did": "did:key:z4MXj1wBzi9jUstyPMS4jQqB6KdJaiatPkAtVtGc6bQEQEEsKTic4G7Rou3iBf9vPmT5dbkm9qsZsuVNjq8HCuW1w24nhBFGkRE4cd2Uf2tfrB3N7h4mnyPp1BF3ZttHTYv3DLUPi1zMdkULiow3M1GfXkoC6DoxDUm1jmN6GBj22SjVsr6dxezRVQc7aj9TxE7JLbMH1wh5X3kA58H3DFW8rnYMakFGbca5CB2Jf6CnGQZmL7o5uJAdTwXfy2iiiyPxXEGerMhHwhjTA1mKYobyk2CpeEcmvynADfNZ5MBvcCS7m3XkFCMNUYBS9NQ3fze6vMSUPsNa6GVYmKx2x6JrdEjCk3qRMMmyjnjCMfR4pXbRMZa3i"
-}
-```
-
 ### 3.2.2 Authorization Criterea
 
 FIXME FIXME FIXME what about the root onwer?
 
 The Requester MAY also include validation criterea expected from the Responder. This MUST be passed as an array of [UCAN capabilities](https://github.com/ucan-wg/spec#23-capability). The Responder will have to prove access to these capabilties.
 
+## 3.2.3 Example
+
 ``` javascript
 {
-  // ...
+  "awake": "init"
+  "did": "did:key:z4MXj1wBzi9jUstyPMS4jQqB6KdJaiatPkAtVtGc6bQEQEEsKTic4G7Rou3iBf9vPmT5dbkm9qsZsuVNjq8HCuW1w24nhBFGkRE4cd2Uf2tfrB3N7h4mnyPp1BF3ZttHTYv3DLUPi1zMdkULiow3M1GfXkoC6DoxDUm1jmN6GBj22SjVsr6dxezRVQc7aj9TxE7JLbMH1wh5X3kA58H3DFW8rnYMakFGbca5CB2Jf6CnGQZmL7o5uJAdTwXfy2iiiyPxXEGerMhHwhjTA1mKYobyk2CpeEcmvynADfNZ5MBvcCS7m3XkFCMNUYBS9NQ3fze6vMSUPsNa6GVYmKx2x6JrdEjCk3qRMMmyjnjCMfR4pXbRMZa3i",
   "caps": [
     {
       "with": "mailto:me@example.com",
@@ -124,14 +121,7 @@ The Requester MAY also include validation criterea expected from the Responder. 
     {
       "with": "dns:example.com",
       "can: "crud/update"
-    }
-  ]
-}
-
-// Request superuser capabilities for did:key:z6MkiTBz1ymuepAQ4HEHYSF1H8quG5GLVVQR3djdX3mDooWp
-{
-  // ...
-  "caps": [
+    },
     {
       "with": "as:did:key:z6MkiTBz1ymuepAQ4HEHYSF1H8quG5GLVVQR3djdX3mDooWp:*",
       "can: "*"
