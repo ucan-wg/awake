@@ -123,7 +123,7 @@ The Requester MAY also include validation criterea expected from the Responder. 
       "can": "crud/update"
     },
     {
-      "as": "did:key:z6MkiTBz1ymuepAQ4HEHYSF1H8quG5GLVVQR3djdX3mDooWp" // FIXME backport to UCAN???
+      "as": "did:key:z6MkiTBz1ymuepAQ4HEHYSF1H8quG5GLVVQR3djdX3mDooWp",
       "with": "*",
       "can": "*"
     }
@@ -203,9 +203,13 @@ The validation UCAN MUST NOT be used to delegate any capabilities. This UCAN MUS
 
 The payload for this step MUST have the 
 
-| Key | Value | Purpose | Required |
-| ---| ----- | ---- | ----|
-| `awake` | `"exchange"` | 
+| Key     | Value        | Purpose   | Required |
+| --------| ------------ | --------- | -------- |
+| `awake` | `"exchange"` |           | Yes      |
+| `aud`   |              |           | Yes      |
+| `key`   |              |           | Yes      |
+| `iv`    |              |           | Yes      |
+| `ucan`  |              |           | Yes      |
 
 ``` javascript
 {
