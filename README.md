@@ -31,19 +31,19 @@ The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT", "SHOULD", "S
 
 ## 2 Sequence
 
-AWAKE proceeds in 7 steps, 
+AWAKE proceeds in 4 rounds:
 
-0. Both parties subscribe to a well-known channel
-1. Requester broadcasts intent
+* 0. Both parties subscribe to a well-known channel
+* 1. Requester broadcasts intent
   * a. Temporary DID
   * b. Responder authorization criterea
-2. Responder establishes point-to-point session
+* 2. Responder establishes point-to-point session
   * a. Responder securely proves that they have sufficient rights
   * b. Responder transmits a session key via asymmetric key exchange
-3. Requestor authentication
+* 3. Requestor authentication
   * a. Requester sends actual DID
   * b. Requester sends instance validation (e.g. UCAN or out-of-band PIN)
-4. Responder sends an `ACK`
+* 4. Responder sends an `ACK`
 
 ```
 Attacker                 Requester                  Responder
