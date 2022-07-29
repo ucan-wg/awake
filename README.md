@@ -85,7 +85,9 @@ Attacker                 Requester                  Responder
    ⋮                         ⋮                          ⋮
 ```
 
-In this step, the Requester broadcasts a temporary DID, and some criterea that it extects a Responder to provide. Both pieces of information are sent in a single message. This request payload MUST be formatted as JSON and MUST contain the `did` and `caps` fields. The `caps` field MAY be an empty array.
+In this step, the Requester broadcasts a temporary DID, and some criterea that it extects a Responder to provide. Both pieces of information are sent in a single message. This request payload MUST contain the `did` and `caps` fields. The `caps` field MAY be an empty array.
+
+The payload stage MUST be signalled by the pair `"awake": "init"`.
 
 ``` javascript
 {
@@ -105,7 +107,7 @@ This "temporary DID", and MUST only be used for key exchange. It MUST NOT be use
 
 The Requester MAY also include validation criterea expected from the Responder. This MUST be passed as an array of [UCAN capabilities](https://github.com/ucan-wg/spec#23-capability). The Responder will have to prove access to these capabilties.
 
-## 3.2.3 Example
+## 3.2.3 JSON Example
 
 ``` javascript
 {
@@ -143,46 +145,77 @@ Requester                  Responder
     ⋮                          ⋮
 ```
 
-In this step, the Responder MUST prove that they have access to the requested resources, and sets up a protected point-to-point connection.
+In this step, the Responder MUST prove that they have access to the requested resources, and sets up a protected point-to-point connection. This is used to establish trust in the capabilities of the Responder, but MUST NOT actually delegating anything.
 
 The temporary RSA key from the previous step MUST be exclusively used for exchanging a 256-bit AES-GCM "session key". RSA is both slow and can only hold a limited number of bytes, so using it to encrypt the payloads of the rest of the session is infeasable.
 
-```
-         Payload
+The payload contains two encryption layers, and signature: the RSA envelope, the AES envelope, and the AES key signed by the Responder.
 
-       ┌───RSA───┐
-       │         │
-       │ AES-GCM │
-       │    │    │
-       └────┼────┘
-            │
-            │
-            ▼
-┌────────AES-GCM───────┐
-│                      │
-│  ┌───────UCAN─────┐  │
-│  │                │  │
-│  │  fct: AES-GCM  │  │
-│  │  att: []       │  │
-│  │  prf: ...      │  │
-│  │                │  │
-│  └────────────────┘  │
-│                      │
-└──────────────────────┘
 ```
+          Payload
+
+        ┌───RSA───┐
+        │         │
+        │ AES-GCM │
+        │    │    │
+        └────┼────┘
+             │
+             │
+             ▼
+┌─────────AES-GCM────────┐
+│                        │
+│  ┌───────UCAN───────┐  │
+│  │                  │  │
+│  │  iss: Responder  │  │
+│  │  fct: AES-GCM    │  │
+│  │  att: []         │  │
+│  │  prf: ...        │  │
+│  │                  │  │
+│  └──────────────────┘  │
+│                        │
+└────────────────────────┘
+```
+
 
 ### 3.3.1 Key Exchange
 
-The 
+The Responder MUST generate a fresh 256-bit AES-GCM key and 12-byte initialization vector (IV) per connection request. It is RECOMMENDED that the Responder track all DIDs requested with, and to only respond to each temporary DID exactly once.
 
+The AES key MUST be encoded as padded base64 and included in the facts (`fct`) section of the payload UCAN. The rest of the [validation UCAN is constructed](#332-validation-ucan) and signed per normal, thus including the AES key in the signature payload.
 
+``` javascript
+{
+  fct: [
+    {
+      "awake": base64AesKey
+    }
+  ]
+}
+```
 
-The producer 💻 sends an asymmetrically encrypted AES256-GCM session key to the temporary public key that was broadcast by the consumer. The producer will ONLY respond to ONE request over this channel at a time. It is locked to the one temporary DID until the AWAKE completes successfully, is rejected, or times out. New connections MUST use new randomly generated keys temporary DIDs and AES-GCM session keys. The producer SHOULD track keys that they have already seen, and reject new requests involving them.
+The entire UCAN MUST be encrypted with the same AES-GCM key as included in the facts section, and using the IV before being added to the payload.
 
+### 3.3.2 Validation UCAN
 
+The validation UCAN MUST NOT be used to delegate any capabilities. This UCAN MUST only be used to prove access to capabilities and sign the AES key.
 
-### 3.3.2 Capability Validation
+### 3.3.3 Payload
 
+The payload for this step MUST have the 
+
+| Key | Value | Purpose | Required |
+| ---| ----- | ---- | ----|
+| `awake` | `"exchange"` | 
+
+``` javascript
+{
+  "awake": "exchange",
+  "aud": requesterTempDid,
+  "key": encyptedKey, // AES-GCM encrypted with RSA-OAEP, encoded with base64-padded
+  "iv": bytes, // 12-byte initialization vector, encoded with base64-padded
+  "ucan":  encryptedUcan // UCAN encrypted with AES-GCM
+}
+```
 
 ### **4. Session Key Negotiation over UCAN**
 
