@@ -48,20 +48,20 @@ AWAKE proceeds in one connecion step and four communication rounds:
 ```
 Attacker                 Requester                  Responder
    │                         │                          │ 
-   │         Temp DID        │         Temp DID         │ (2a)
-   │       Auth Criterea     │      Auth Criterea       │ (2b)
+   │         temp did        │         temp did         │ (2a)
+   │       auth criterea     │      auth criterea       │ (2b)
    │◄────────────────────────┼─────────────────────────►│
    │                         │                          │
-   │                         │       Authorization      │ (3a)
-   │                         │        Session Key       │ (3b)
+   │                         │       authorization      │ (3a)
+   │                         │        session key       │ (3b)
    │                         │◄─────────────────────────┤
    │                         │                          │
-   │                         │        Actual DID        │ (4a)
-   │                         │       & Validation       │ (4b)
+   │                         │        actual did        │ (4a)
+   │                         │       & validation       │ (4b)
    │                         ├─────────────────────────►│
    │                         │                          │
    │                         │                          │
-   │                         │           ACK            │ (5)
+   │                         │           ack            │ (5)
    │                         │◄─────────────────────────┤
    │                         │                          │
 ```
@@ -71,6 +71,15 @@ Attacker                 Requester                  Responder
 ## 3.1 Subscribe to Common Channel
 
 AWAKE begins by all parties listening on a common channel. The channel itself is unimportant: it MAY be public, broadcast to all listeners, be assynchronous, and over any transport. To reduce channel noise, it is RECOMMENDED that this channel be specific to some topic. For instance, a websocket channel on the topic`awake:did:key:zStEZpzSMtTt9k2vszgvCwF4fLQQSyA15W5AQ4z3AR6Bx4eFJ5crJFbuGxKmbma4` MAY be used for messages about resources owned by `did:key:zStEZpzSMtTt9k2vszgvCwF4fLQQSyA15W5AQ4z3AR6Bx4eFJ5crJFbuGxKmbma4`.
+
+Graceful disconnection from an AWAKE attempt can be broadcast at any step with the following payload:
+
+``` javascript
+{
+  "awake": "fin", 
+  "did": requestorTrueOrTempDid
+}
+```
 
 ## 3.2 Requester Broadcasts Intent
 
@@ -92,7 +101,7 @@ The payload stage MUST be signalled by the pair `"awake": "init"`.
 ``` javascript
 {
   "awake": "init",
-  "did": didKey, 
+  "did": requesterTempDid, 
   "caps": [ ...requiredCaps ]
 }
 ```
@@ -109,11 +118,11 @@ The Requester MAY also include validation criterea expected from the Responder. 
 
 ### 3.2.3 Payload
 
-| Field   | Value        | Purpose                                        | Required |
-| --------| ------------ | ---------------------------------------------- | -------- |
-| `awake` | `"init"`     | Signal which step of AWAKE this payload is for | Yes      |
-| `did`   |              | The DID of the Requestor this is intended for  | Yes      |
-| `caps`  |              | Capabilities that the Responder MUST provide   | Yes      |
+| Field   | Value    | Purpose                                        | Required |
+| --------| -------- | ---------------------------------------------- | -------- |
+| `awake` | `"init"` | Signal which step of AWAKE this payload is for | Yes      |
+| `did`   |          | The DID of the Requestor this is intended for  | Yes      |
+| `caps`  |          | Capabilities that the Responder MUST provide   | Yes      |
 
 #### 3.2.3.1 JSON Example
 
@@ -141,7 +150,7 @@ The Requester MAY also include validation criterea expected from the Responder. 
 
 ## 3.3 Responder Establishes Point-to-Point Session
 
-**NOTE: The Responder is not yet trusted at this step**
+**NOTE: The Responder is not yet trusted at this step, and MUST be treated as a possible impersonator or PITM**
 
 ```
 Requester                  Responder
@@ -184,12 +193,13 @@ The payload contains two encryption layers, and signature: the RSA envelope, the
 └────────────────────────┘
 ```
 
+Upon receipt, the Requestor MUST validate that the UCAN capabilities fulfill their `caps` criterea. The UCAN itself MUST be valid, unrevoked, unexpired, and intended for the temporary DID (the `aud` field). If any of these checks fail, the session MUST be abandoned, the temporary DID regenerated, and the protocol restarted from [intention braodcast](#32-requester-broadcasts-intent).
 
 ### 3.3.1 Key Exchange
 
 The Responder MUST generate a fresh 256-bit AES-GCM key and 12-byte initialization vector (IV) per connection request. It is RECOMMENDED that the Responder track all DIDs requested with, and to only respond to each temporary DID exactly once.
 
-The AES key MUST be encoded as padded base64 and included in the facts (`fct`) section of the payload UCAN. The rest of the [validation UCAN is constructed](#332-validation-ucan) and signed per normal, thus including the AES key in the signature payload.
+The AES key MUST be encoded as padded base64 and included in the facts (`fct`) section of the payload UCAN. The rest of the [validation UCAN is constructed](#332-validation-ucan) and signed per normal, thus including the AES key in the signature payload. This signature serves as proof that the AES key was intended for this specific session.
 
 ``` javascript
 {
@@ -203,9 +213,11 @@ The AES key MUST be encoded as padded base64 and included in the facts (`fct`) s
 
 The entire UCAN MUST be encrypted with the same AES-GCM key as included in the facts section, and using the IV before being added to the payload.
 
+The IV MUST be generated fresh for every message in this session. If the session is not fully established, the AES key MUST NOT ever be reused.
+
 ### 3.3.2 Validation UCAN
 
-The validation UCAN MUST NOT be used to delegate any capabilities. This UCAN MUST only be used to prove access to capabilities and sign the AES key.
+The validation UCAN MUST NOT be used to delegate any capabilities. This UCAN MUST only be used to prove access to capabilities and sign the AES key. The `att` and `my` fields MUST be empty arrays.
 
 ### 3.3.3 Payload
 
@@ -229,64 +241,27 @@ The validation UCAN MUST NOT be used to delegate any capabilities. This UCAN MUS
 }
 ```
 
-### **4. Session Key Negotiation over UCAN**
+## 3.4. Requester Authenticates
 
-This step is both a "preflight" and provider authentication via UCAN.
-
-Up to this point, Eve 🦹‍♀️ may be impersonating Alice 👩‍💻. This step proves a priori that the provider that sent the session key actually does hold the capabilities that are being requested.
-
-Eve 🦹‍♀️ has no incentive to delegate rights other than to hide from detection. However, in this scenario where she somehow already has a valid UCAN, the game was already over. There are remedies available (revocation & rotation) were that to happen. AWAKE aims to minimize this possibility from the outset (Alice 👩‍💻 would have to agree to granting Eve 🦹‍♀️ these rights due to human error).
-
-This step MUST NOT delegate any rights (`att = []`), but MUST include the entire proof chain that will be used in the actual credential delegation later. For the consumer, this is an _a priori_ proof that you are communicating _directly_ with an authorized machine, that has access to at least the capabilities that you are interested in.
-
-The AES256-GCM session key MUST be included in the "facts" (`fct`) field. Since UCANs are signed, this is used to assert that the session key came directly from the authorized user.
-
-The UCAN audience tells us that the sender intended that key for us, and no others. It is predicated on the assumption that the **provider never reuses that key** in any other channel.
-
-In short, this step proves provides two things:
-
-1. Proves that you are talking to a machine that does, in fact, have the correct rights that you're looking to have delegated
-2. Authenticates the 256-bit AES key to make sure that the session key hasn't been tampered with
-
-#### Example
-
-💻 responds by broadcasting a "closed" UCAN on channel `did:key:zALICE`, encrypted with the session key. The embedded UCAN is proof that the sender does, in fact, have permissions for the account, but it does not delegate anything yet. The facts section (`fct`) includes the same session key that is used to encrypt the data on this channel.
-
-```javascript
-// A UCAN with sent to the THROWAWAY address with *no delegation*
-closedUcan.claims.iss = `did:key:z${LAPTOP}`
-closedUcan.claims.aud = `did:key:z${THROWAWAY}`
-closedUcan.claims.fct = [..., {"sessionKey": sessonKeyAES256}]
-closedUcan.claims.att = [] // i.e. MUST delegate nothing
-closedUcan.claims.prf = [...proofs] // May be omited if on the root machine
-
-closedUcan.signature = rsaSign({
-  secretKey: LAPTOP_SK,
-  tokenHead: closedUcan.header,
-  tokenClaims: closedUcan.claims
-})
-
-// Encrypt the token
-const encryptedPayload = rsaEncrypt({
-  to: IPHONE_PK, 
-  payload: closedUcan
-})
+```
+Requester                  Responder
+    ⋮                          ⋮
+    │        actual did        │ (4a)
+    │       & validation       │ (4b)
+    ├─────────────────────────►│
+    ⋮                          ⋮
 ```
 
-Here we're _securely_ responding with a randomly generated AES256 key, embedded in the UCAN's "facts" section. Since UCANs are signed, and the audience is the recipient, we have proof this message was intended for the recipient and has not been modified along the way.
-
-The recipient MUST validate the following:
-
-1. The encrypted message can be decrypted by SK associated with the `ucan.aud`
-2. Signature chain — from the outermost JWT signature, all the way through nested UCANs back to the root
-3. The first-level proofs (EXACTLY one level above) MUST contain the permissions that you are looking to be granted (not two nested levels of \`att: \[]\`), OR be the root credential.
-4. The innermost (root) issuer (`iss` field) MUST match the channel's DID (i.e. the DID that you are requesting from).
-
-If any of the above does not match, you MUST ignore that message and start again. It's Eve's machine trying to establish a person-in-the-middle attack (PITM) 😈
-
-### **5. PIN Validation**
-
-Steps 1-3 establish a connection with _a requesting machine_, but not necessarily _the user's machine_. To validate that this is the correct user, we go out of band and have the human verify a code.
+``` javascript
+{
+  "awake": "authenticate",
+  "did": trueReuqesterDid,
+  // either
+  "pin": outOfBandPin, // FIXME requestor specified method in previous step
+  // or
+  "ucan": ucan
+}
+```
 
 The requestor displays a challenge (PIN code) to the user. It sends the PIN and DID/signing key (encrypted with the AES key) over pubsub. The UCAN holder decrypts and displays this PIN to the user and asks them to confirm that it matches. If it matches, you are talking to the correct machine, and you have the DID to delegate to 🎉
 
@@ -326,3 +301,6 @@ RSA is used because it is available with a nonexportable key in browsers, is ubi
 Note that there is nothing special about AES256-GCM. This key is symmetric and will be available in memory. As such, this protocol gains little from the WebCrypto API aside from potential hardware acceleration (which can be helpful against certain timings attacks).
 
 In a future version, AES-GCM may be replaced with AES-SIV-GCM or XChaCha20-Poly1305.
+
+
+Eve 🦹‍♀️ has no incentive to delegate rights other than to hide from detection. However, in this scenario where she somehow already has a valid UCAN, the game was already over. There are remedies available (revocation & rotation) were that to happen. AWAKE aims to minimize this possibility from the outset (Alice 👩‍💻 would have to agree to granting Eve 🦹‍♀️ these rights due to human error).
