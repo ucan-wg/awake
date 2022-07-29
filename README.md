@@ -116,15 +116,15 @@ The Requester MAY also include validation criterea expected from the Responder. 
   "caps": [
     {
       "with": "mailto:me@example.com",
-      "can: "msg/send"
+      "can": "msg/send"
     },
     {
       "with": "dns:example.com",
-      "can: "crud/update"
+      "can": "crud/update"
     },
     {
       "with": "as:did:key:z6MkiTBz1ymuepAQ4HEHYSF1H8quG5GLVVQR3djdX3mDooWp:*",
-      "can: "*"
+      "can": "*"
     }
   ]
 }
