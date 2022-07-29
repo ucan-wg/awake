@@ -13,19 +13,15 @@
 
 Authorized Wire Authenticated Key Exchange (AWAKE) is an [AKE](https://en.wikipedia.org/wiki/Authenticated_Key_Exchange) built on top of the [UCAN auth token](https://github.com/ucan-wg/spec). AWAKE is similar to other mutual authentication schemes, such as self-signed [mTLS](https://datatracker.ietf.org/doc/html/rfc8705), but with a focus on authorization proofs. AWAKE leverages the capability chain to prove access to some resource, validating that the requestor is communicating with a party capable of performing certain actions. This is a helpful root of trust with a well defined context when establishing a secure communications channel.
 
+The core problem that AWAKE solves is bootstrapping a secure session on top of a public channel. Key exchanges for point-to-point communication are plentiful, but in open, trusteless protocols, rooting trust can be a barrier for ad hoc communications channels. Two common approaches are to use a trusted certificate authority, or ignore the principal and "merely" establish a point-to-point channel.
+
+Capability-based systems have a helpful philosophy towards a third path. By emphasizing authorization over authentication, they provide a way to know something provable about what the other party "can do", even if they have no sure way of knowing "who they are". One way of phrasing this is that such an agent is "functionally equivalent to the principal in this context".
+
 ## Language
 
 The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT", "SHOULD", "SHOULD NOT", "RECOMMENDED", "MAY", and "OPTIONAL" in this document are to be interpreted as described in [RFC 2119](https://datatracker.ietf.org/doc/html/rfc2119).
 
-# 1. Introduction
-
-In open, trusteless protocols, rooting trust can be difficult. Authenticating a user through a software agent is often too high a barrier for ad hoc communications channels. Two common approaches are to use a certificate authority, or ignore the principal and "merely" establish a point-to-point channel.
-
-Capability-based systems have a helpful philosophy towards this goal: emphasizing authorization over authentication. The human being on the other end of a handshake matters much less than what that agent is authorized to do. One way of phrasing this is that such an agent is "functionally equivalent to the principal in this context". This provides an avenue for ensuring that the party on the other side of a connection is able to perform specific actions.
-
-# 2. High Level Protocol
-
-## 2.1 Roles
+# 1 Roles
 
 | Name      | Role                                                 |
 | --------- | ---------------------------------------------------- |
@@ -33,41 +29,51 @@ Capability-based systems have a helpful philosophy towards this goal: emphasizin
 | Responder | The agent being contacted by the Requestor           |
 | Attacker  | An attacker attempting to gain access to the channel |
 
-## 2.2 Sequence
+## 2 Sequence
 
-* Both parties subscribe to a well-known channel
-* Consumer broadcasts a temporary DID
-* Producer securely proves that they have sufficient rights
-* Securely agree on a symmetric key
-* Consumer sends actual DID, along with a PIN
-* Producer validates PIN out of band
-* Producer creates and sends relevant UCAN and keys
+AWAKE proceeds in 7 steps, 
+
+0. Both parties subscribe to a well-known channel
+1. Requester broadcasts intent
+  * a. Temporary DID
+  * b. Responder authorization criterea
+2. Responder establishes point-to-point session
+  * a. Responder securely proves that they have sufficient rights
+  * b. Responder transmits a session key via asymmetric key exchange
+3. Requestor authentication
+  * a. Requester sends actual DID
+  * b. Requester sends instance validation (e.g. UCAN or out-of-band PIN)
+4. Responder sends an `ACK`
 
 ```
 Attacker                 Requester                  Responder
-   │                         │                          │
-   │         Temp DID        │       Temp DID           │
+   │                         │                          │ 
+   │         Temp DID        │         Temp DID         │ (1a)
+   │       Auth Criterea     │      Auth Criterea       │ (1b)
    │◄────────────────────────┼─────────────────────────►│
    │                         │                          │
-   │                         │        Authorized        │
-   │                         │       Session Info       │
+   │                         │       Authorization      │ (2a)
+   │                         │        Session Key       │ (2b)
    │                         │◄─────────────────────────┤
    │                         │                          │
-   │                         │       Actual DID         │
-   │                         │      & Validation        │
+   │                         │        Actual DID        │ (3a)
+   │                         │       & Validation       │ (3b)
    │                         ├─────────────────────────►│
    │                         │                          │
-   │                         │           ACK            │
+   │                         │                          │
+   │                         │           ACK            │ (4)
    │                         │◄─────────────────────────┤
    │                         │                          │
 ```
 
-
 # 3. Detailed Stages
 
-### **Step 1: Everyone Subscribes to Channel**
+## 3.1 All Parties Subscribe to Channel
 
-All parties listen for messages on a channel named for the root DID. A peer that can issue UCANs must be online and listening on this channel
+AWAKE begins by all parties listening on a common channel. This channel MAY be public and broadcast to all listeners. It is RECOMMENDED that this channel be 
+
+
+for the root DID. A peer that can issue UCANs must be online and listening on this channel
 
 #### Example
 
