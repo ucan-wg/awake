@@ -25,8 +25,8 @@ The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT", "SHOULD", "S
 
 | Name      | Role                                                 |
 | --------- | ---------------------------------------------------- |
-| Requestor | The agent opening the session                        |
-| Responder | The agent being contacted by the Requestor           |
+| Requester | The agent opening the session                        |
+| Responder | The agent being contacted by the Requester           |
 | Attacker  | An attacker attempting to gain access to the channel |
 
 ## 2 Sequence
@@ -40,7 +40,7 @@ AWAKE proceeds in 4 rounds:
 2. Responder establishes point-to-point session
     * a. Responder securely proves that they have sufficient rights
     * b. Responder transmits a session key via asymmetric key exchange
-3. Requestor authentication
+3. Requester authentication
     * a. Requester sends actual DID
     * b. Requester sends instance validation (e.g. UCAN or out-of-band PIN)
 4. Responder sends an `ACK`
@@ -72,7 +72,9 @@ Attacker                 Requester                  Responder
 
 AWAKE begins by all parties listening on a common channel. The channel itself is unimportant: it MAY be public, broadcast to all listeners, be assynchronous, and over any transport. To reduce channel noise, it is RECOMMENDED that this channel be specific to some topic. For instance, a websocket channel on the topic`awake:did:key:zStEZpzSMtTt9k2vszgvCwF4fLQQSyA15W5AQ4z3AR6Bx4eFJ5crJFbuGxKmbma4` MAY be used for messages about resources owned by `did:key:zStEZpzSMtTt9k2vszgvCwF4fLQQSyA15W5AQ4z3AR6Bx4eFJ5crJFbuGxKmbma4`.
 
-![](../../.gitbook/assets/screen-shot-2021-05-01-at-6.26.40-pm.png)
+## 3.2 Requester Broadcasts Intent
+
+**NOTE: This stage is completely in the clear.**
 
 ```
 Attacker                 Requester                  Responder
@@ -83,19 +85,34 @@ Attacker                 Requester                  Responder
    ⋮                         ⋮                          ⋮
 ```
 
-## 3.2 Consumer Broadcasts an Temporary Public Key**
+In this step, the Requester broadcasts a temporary DID, and some criterea that it extects a Responder to provide. Both pieces of information are sent in a single message. This request MUST be formatted as JSON and contain the `did` and `caps` fields.
 
-This gives everyone on the channel a 2048-bit RSA public key to send secret data to. Here we call the associated DID `did:key:zTHROWAWAY`.
+``` javascript
+{
+  "did": didKey, 
+  "caps": [ ...requiredCaps ]
+}
+```
 
-This key MUST be _temporary_, as public key as encryption and signing keys MUST be different. This temporary key is ONLY used to bootstrap a channel, and MUST NOT live beyond that time. It is ideally non-exportable, especially in the browser via the [WebCrypto API](https://developer.mozilla.org/en-US/docs/Web/API/Web\_Crypto\_API).
+### 3.2.1 Temporary DID
 
-RSA is used because it is available with a nonexportable key in browsers, is ubiquitous on all other systems, and is not considered likely backdoored (the NIST ECCs are [considered highly suspect](http://safecurves.cr.yp.to)).
+The Requester generates a fresh 2048-bit [RSA-OAEP](https://datatracker.ietf.org/doc/html/rfc3447) key pair. This is the "temporary DID", and MUST only be used for key exchange. It MUST NOT be used for signatures, and MUST NOT be persisted past this one session boostrap (i.e. discard at step [FIXME, but likely s3.3]).
 
-#### Example
+The temporary key is an RSA-OAEP key due to its ubquity, including support for non-extractable private keys in the [WebCrypto API](https://developer.mozilla.org/en-US/docs/Web/API/Web\_Crypto\_API). A non-extractable key is RECOMMENDED whenever supported by the host platform.
 
-📱 broadcasts the cleartext message `did:key:zTHROWAWAY` on the channel `did:key:zALICE`
+### 3.2.2 Authorization Criterea
 
-![](../../.gitbook/assets/screen-shot-2021-05-01-at-6.24.33-pm.png)
+FIXME FIXME FIXME what about the root onwer?
+
+The Requester MAY also include validation criterea expected from the Responder. This MUST be passed as an array of [UCAN capabilities](https://github.com/ucan-wg/spec#23-capability) that must be proven.
+
+
+
+
+
+
+
+
 
 ### **3. Provider Opens a Secure Channel**
 
@@ -190,3 +207,9 @@ aesEncrypt(
   "ucan": newUcan
 })
 ```
+
+# FAQ
+
+Why not ECC?
+
+RSA is used because it is available with a nonexportable key in browsers, is ubiquitous on all other systems, and is not considered likely backdoored (the NIST ECCs are [considered highly suspect](http://safecurves.cr.yp.to)).
