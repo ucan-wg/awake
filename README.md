@@ -31,37 +31,37 @@ The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT", "SHOULD", "S
 
 ## 2 Sequence
 
-AWAKE proceeds in 4 rounds:
+AWAKE proceeds in one connecion step and four communication rounds:
 
-0. Both parties subscribe to a well-known channel
-1. Requester broadcasts intent
+1. Both parties subscribe to a well-known channel
+2. Requester broadcasts intent
     * a. Temporary DID
     * b. Responder authorization criterea
-2. Responder establishes point-to-point session
+3. Responder establishes point-to-point session
     * a. Responder securely proves that they have sufficient rights
     * b. Responder transmits a session key via asymmetric key exchange
-3. Requester authentication
+4. Requester authentication
     * a. Requester sends actual DID
     * b. Requester sends instance validation (e.g. UCAN or out-of-band PIN)
-4. Responder sends an `ACK`
+5. Responder sends an `ACK`
 
 ```
 Attacker                 Requester                  Responder
    │                         │                          │ 
-   │         Temp DID        │         Temp DID         │ (1a)
-   │       Auth Criterea     │      Auth Criterea       │ (1b)
+   │         Temp DID        │         Temp DID         │ (2a)
+   │       Auth Criterea     │      Auth Criterea       │ (2b)
    │◄────────────────────────┼─────────────────────────►│
    │                         │                          │
-   │                         │       Authorization      │ (2a)
-   │                         │        Session Key       │ (2b)
+   │                         │       Authorization      │ (3a)
+   │                         │        Session Key       │ (3b)
    │                         │◄─────────────────────────┤
    │                         │                          │
-   │                         │        Actual DID        │ (3a)
-   │                         │       & Validation       │ (3b)
+   │                         │        Actual DID        │ (4a)
+   │                         │       & Validation       │ (4b)
    │                         ├─────────────────────────►│
    │                         │                          │
    │                         │                          │
-   │                         │           ACK            │ (4)
+   │                         │           ACK            │ (5)
    │                         │◄─────────────────────────┤
    │                         │                          │
 ```
@@ -103,8 +103,6 @@ This "temporary DID", and MUST only be used for key exchange. It MUST NOT be use
 
 ### 3.2.2 Authorization Criterea
 
-FIXME FIXME FIXME what about the root onwer?
-
 The Requester MAY also include validation criterea expected from the Responder. This MUST be passed as an array of [UCAN capabilities](https://github.com/ucan-wg/spec#23-capability). The Responder will have to prove access to these capabilties.
 
 ## 3.2.3 Example
@@ -123,7 +121,8 @@ The Requester MAY also include validation criterea expected from the Responder. 
       "can": "crud/update"
     },
     {
-      "with": "as:did:key:z6MkiTBz1ymuepAQ4HEHYSF1H8quG5GLVVQR3djdX3mDooWp:*",
+      "as": "did:key:z6MkiTBz1ymuepAQ4HEHYSF1H8quG5GLVVQR3djdX3mDooWp" // FIXME backport to UCAN???
+      "with": "*",
       "can": "*"
     }
   ]
@@ -131,6 +130,10 @@ The Requester MAY also include validation criterea expected from the Responder. 
 ```
 
 ## 3.3 Responder Establishes Point-to-Point Session
+
+**NOTE: The Responder is not yet trusted at this step**
+
+This step 
 
 Since RSA-OAEP is slow and can only hold a small amount of data, we use it to open a secured channel over AES256-GCM.
 
