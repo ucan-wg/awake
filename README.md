@@ -205,7 +205,7 @@ The AES key MUST be encoded as padded base64 and included in the facts (`fct`) s
 {
   fct: [
     {
-      "awake": base64AesKey
+      "awake": base64AesKey,
     }
   ]
 }
@@ -219,7 +219,11 @@ The IV MUST be generated fresh for every message in this session. If the session
 
 The validation UCAN MUST NOT be used to delegate any capabilities. This UCAN MUST only be used to prove access to capabilities and sign the AES key. The `att` and `my` fields MUST be empty arrays.
 
-### 3.3.3 Payload
+### 3.3.3 Challenge
+
+The Responder picks the method of challege to validate the Requestor. FIXME FIXME FIXME for the next step: out-of-band pin (e.g. linking) or existing UCAN (e.g. chat)
+
+### 3.3.4 Payload
 
 | Field   | Value        | Purpose                                                     | Required |
 | --------| ------------ | ----------------------------------------------------------- | -------- |
@@ -229,7 +233,7 @@ The validation UCAN MUST NOT be used to delegate any capabilities. This UCAN MUS
 | `iv`    |              | Initialization vector for the encrypted `ucan` payload      | Yes      |
 | `ucan`  |              | AES-encrypted validation UCAN                               | Yes      |
 
-#### 3.3.3.1 JSON Example
+#### 3.3.4.1 JSON Example
 
 ``` javascript
 {
@@ -237,7 +241,7 @@ The validation UCAN MUST NOT be used to delegate any capabilities. This UCAN MUS
   "aud": requesterTempDid,
   "key": encyptedKey,
   "iv": bytes,
-  "ucan":  encryptedUcan 
+  "ucan": encryptedUcan 
 }
 ```
 
@@ -255,7 +259,13 @@ Requester                  Responder
 ``` javascript
 {
   "awake": "authenticate",
-  "did": trueReuqesterDid,
+  "id": hashAesKey
+  "payload": encryptedPayload
+}
+
+// Encrypted payload
+{
+  "did": trueRequesterDid,
   // either
   "pin": outOfBandPin, // FIXME requestor specified method in previous step
   // or
