@@ -21,12 +21,18 @@ Capability-based systems have a helpful philosophy towards a third path. By emph
 
 The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT", "SHOULD", "SHOULD NOT", "RECOMMENDED", "MAY", and "OPTIONAL" in this document are to be interpreted as described in [RFC 2119](https://datatracker.ietf.org/doc/html/rfc2119).
 
-# 1 Roles
+# 1 Introduction
+
+## 1.1 Payload Fields
+
+All payloads MUST include the "AWAKE Version" field `awv: "0.1.0"`. Payloads MUST also include a message type field `type` (see each stage for the value). All field keys and message type values MUST be case-insensitive.
+
+## 1.2 Roles
 
 | Name      | Role                                                 |
 | --------- | ---------------------------------------------------- |
-| Requester | The agent opening the session                        |
-| Responder | The agent being contacted by the Requester           |
+| Requestor | The agent opening the session                        |
+| Responder | The agent being contacted by the Requestor           |
 | Attacker  | An attacker attempting to gain access to the channel |
 
 ## 2 Sequence
@@ -34,34 +40,34 @@ The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT", "SHOULD", "S
 AWAKE proceeds in one connecion step and four communication rounds:
 
 1. Both parties subscribe to a well-known channel
-2. Requester broadcasts intent
+2. Requestor broadcasts intent
     * a. Temporary DID
     * b. Responder authorization criterea
 3. Responder establishes point-to-point session
     * a. Responder securely proves that they have sufficient rights
     * b. Responder transmits a session key via asymmetric key exchange
-4. Requester authentication
-    * a. Requester sends actual DID
-    * b. Requester sends instance validation (e.g. UCAN or out-of-band PIN)
+4. Requestor authentication
+    * a. Requestor sends actual DID
+    * b. Requestor sends instance validation (e.g. UCAN or out-of-band PIN)
 5. Responder sends an `ACK`
 
 ```
-Attacker                 Requester                  Responder
+Attacker                 Requestor                  Responder
    │                         │                          │ 
-   │         temp did        │         temp did         │ (2a)
-   │       auth criterea     │      auth criterea       │ (2b)
+   │        Temp DID  &      │        Temp DID &        │ (2a)
+   │       Auth Criterea     │      Auth Criterea       │ (2b)
    │◄────────────────────────┼─────────────────────────►│
    │                         │                          │
-   │                         │       authorization      │ (3a)
-   │                         │        session key       │ (3b)
+   │                         │       Authorization      │ (3a)
+   │                         │       & Session Key      │ (3b)
    │                         │◄─────────────────────────┤
    │                         │                          │
-   │                         │        actual did        │ (4a)
-   │                         │       & validation       │ (4b)
+   │                         │        Actual DID        │ (4a)
+   │                         │        & Challenge       │ (4b)
    │                         ├─────────────────────────►│
    │                         │                          │
    │                         │                          │
-   │                         │           ack            │ (5)
+   │                         │           ACK            │ (5)
    │                         │◄─────────────────────────┤
    │                         │                          │
 ```
@@ -81,54 +87,48 @@ Graceful disconnection from an AWAKE attempt can be broadcast at any step with t
 }
 ```
 
-## 3.2 Requester Broadcasts Intent
+## 3.2 Requestor Broadcasts Intent
 
 **NOTE: This stage is completely in the clear.**
 
 ```
-Attacker                 Requester                  Responder
+Attacker                 Requestor                  Responder
    │                         │                          │ 
-   │         Temp DID        │         Temp DID         │ (1a)
+   │        Temp DID  &      │        Temp DID &        │ (1a)
    │       Auth Criterea     │      Auth Criterea       │ (1b)
    │◄────────────────────────┼─────────────────────────►│
    ⋮                         ⋮                          ⋮
 ```
 
-In this step, the Requester broadcasts a temporary DID, and some criterea that it extects a Responder to provide. Both pieces of information are sent in a single message. This request payload MUST contain the `did` and `caps` fields. The `caps` field MAY be an empty array.
+In this step, the Requestor broadcasts a temporary DID, and some criterea that it extects a Responder to provide. Both pieces of information are sent in a single message. This request payload MUST contain the `did` and `caps` fields. The `caps` field MAY be an empty array.
 
 The payload stage MUST be signalled by the pair `"awake": "init"`.
 
-``` javascript
-{
-  "awake": "init",
-  "did": requesterTempDid, 
-  "caps": [ ...requiredCaps ]
-}
-```
-
 ### 3.2.1 Temporary DID
 
-The Requester generates a fresh 2048-bit [RSA-OAEP](https://datatracker.ietf.org/doc/html/rfc3447) key pair. This key pair MUST be referenced as a [`did:key`](https://w3c-ccg.github.io/did-method-key/) in the payload.
+The Requestor generates a fresh 2048-bit [RSA-OAEP](https://datatracker.ietf.org/doc/html/rfc3447) key pair. This key pair MUST be referenced as a [`did:key`](https://w3c-ccg.github.io/did-method-key/) in the payload.
 
 This "temporary DID", and MUST only be used for key exchange. It MUST NOT be used for signatures, and MUST NOT be persisted past this one session boostrap (i.e. discard after [Step 3](#33-responder-establishes-point-to-point-session)).
 
 ### 3.2.2 Authorization Criterea
 
-The Requester MAY also include validation criterea expected from the Responder. This MUST be passed as an array of [UCAN capabilities](https://github.com/ucan-wg/spec#23-capability). The Responder will have to prove access to these capabilties.
+The Requestor MAY also include validation criterea expected from the Responder. This MUST be passed as an array of [UCAN capabilities](https://github.com/ucan-wg/spec#23-capability). The Responder will have to prove access to these capabilties.
 
 ### 3.2.3 Payload
 
-| Field   | Value    | Purpose                                        | Required |
-| --------| -------- | ---------------------------------------------- | -------- |
-| `awake` | `"init"` | Signal which step of AWAKE this payload is for | Yes      |
-| `did`   |          | The DID of the Requestor this is intended for  | Yes      |
-| `caps`  |          | Capabilities that the Responder MUST provide   | Yes      |
+| Field   | Value          | Purpose                                              | Required |
+| --------| -------------- | ---------------------------------------------------- | -------- |
+| `awv`   | `"0.1.0"`      | AWAKE message version                                | Yes      |
+| `type`  | `"awake/init"` | Signal which step of AWAKE this payload is for       | Yes      |
+| `did`   |                | The DID of the Requestor this is intended for        | Yes      |
+| `caps`  |                | Capabilities that the Responder MUST provide         | Yes      |
 
 #### 3.2.3.1 JSON Example
 
 ``` javascript
 {
-  "awake": "init"
+  "awv": "0.1.0",
+  "type": "awake/init"
   "did": "did:key:z4MXj1wBzi9jUstyPMS4jQqB6KdJaiatPkAtVtGc6bQEQEEsKTic4G7Rou3iBf9vPmT5dbkm9qsZsuVNjq8HCuW1w24nhBFGkRE4cd2Uf2tfrB3N7h4mnyPp1BF3ZttHTYv3DLUPi1zMdkULiow3M1GfXkoC6DoxDUm1jmN6GBj22SjVsr6dxezRVQc7aj9TxE7JLbMH1wh5X3kA58H3DFW8rnYMakFGbca5CB2Jf6CnGQZmL7o5uJAdTwXfy2iiiyPxXEGerMhHwhjTA1mKYobyk2CpeEcmvynADfNZ5MBvcCS7m3XkFCMNUYBS9NQ3fze6vMSUPsNa6GVYmKx2x6JrdEjCk3qRMMmyjnjCMfR4pXbRMZa3i",
   "caps": [
     {
@@ -140,8 +140,7 @@ The Requester MAY also include validation criterea expected from the Responder. 
       "can": "crud/update"
     },
     {
-      "as": "did:key:z6MkiTBz1ymuepAQ4HEHYSF1H8quG5GLVVQR3djdX3mDooWp",
-      "with": "*",
+      "with": "as:did:key:z6MkiTBz1ymuepAQ4HEHYSF1H8quG5GLVVQR3djdX3mDooWp:*",
       "can": "*"
     }
   ]
@@ -153,12 +152,11 @@ The Requester MAY also include validation criterea expected from the Responder. 
 **NOTE: The Responder is not yet trusted at this step, and MUST be treated as a possible impersonator or PITM**
 
 ```
-Requester                  Responder
+Requestor                  Responder
     ⋮                          ⋮
     │       Authorization      │ (3a)
-    │        Session Key       │ (3b)
+    │       & Session Key      │ (3b)
     │◄─────────────────────────┤
-    │                          │
     ⋮                          ⋮
 ```
 
@@ -184,6 +182,7 @@ The payload contains two encryption layers, and signature: the RSA envelope, the
 │  ┌───────UCAN───────┐  │
 │  │                  │  │
 │  │  iss: Responder  │  │
+│  │  aud: TempDID    │  │
 │  │  fct: AES-GCM    │  │
 │  │  att: []         │  │
 │  │  prf: ...        │  │
@@ -193,7 +192,7 @@ The payload contains two encryption layers, and signature: the RSA envelope, the
 └────────────────────────┘
 ```
 
-Upon receipt, the Requestor MUST validate that the UCAN capabilities fulfill their `caps` criterea. The UCAN itself MUST be valid, unrevoked, unexpired, and intended for the temporary DID (the `aud` field). If any of these checks fail, the session MUST be abandoned, the temporary DID regenerated, and the protocol restarted from [intention braodcast](#32-requester-broadcasts-intent).
+Upon receipt, the Requestor MUST validate that the UCAN capabilities fulfill their `caps` criterea. The UCAN itself MUST be valid, unrevoked, unexpired, and intended for the temporary DID (the `aud` field). If any of these checks fail, the session MUST be abandoned, the temporary DID regenerated, and the protocol restarted from [intention braodcast](#32-requestor-broadcasts-intent).
 
 ### 3.3.1 Key Exchange
 
@@ -205,7 +204,7 @@ The AES key MUST be encoded as padded base64 and included in the facts (`fct`) s
 {
   fct: [
     {
-      "awake": base64AesKey,
+      "awake/key": aesKeyAsBase64Padded,
     }
   ]
 }
@@ -225,57 +224,124 @@ The Responder picks the method of challege to validate the Requestor. FIXME FIXM
 
 ### 3.3.4 Payload
 
-| Field   | Value        | Purpose                                                     | Required |
-| --------| ------------ | ----------------------------------------------------------- | -------- |
-| `awake` | `"exchange"` | Signal which step of AWAKE this payload is for              | Yes      |
-| `aud`   |              | The DID of the Requestor this is intended for               | Yes      |
-| `key`   |              | An RSA-encrypted AES key used to encrypt the `ucan` payload | Yes      |
-| `iv`    |              | Initialization vector for the encrypted `ucan` payload      | Yes      |
-| `ucan`  |              | AES-encrypted validation UCAN                               | Yes      |
+| Field     | Value               | Purpose                                                     | Required |
+| --------- | ------------------- | ----------------------------------------------------------- | -------- |
+| `awv`     | `"0.1.0"`           | AWAKE message version                                       | Yes      |
+| `type`    | `"awake/exchange"`  | Signal which step of AWAKE this payload is for              | Yes      |
+| `aud`     | `sha3_256(tempDid)` | 256-bit SHA3 hash of the Requestor temp DID                 | Yes      |
+| `key`     |                     | An RSA-encrypted AES key used to encrypt the `ucan` payload | Yes      |
+| `iv`      |                     | Initialization vector for the encrypted `ucan` payload      | Yes      |
+| `resauth` |                     | AES-GCM-encrypted validation UCAN, encoded as base64-padded | Yes      |
 
 #### 3.3.4.1 JSON Example
 
 ``` javascript
 {
-  "awake": "exchange",
-  "aud": requesterTempDid,
+  "awv": "0.1.0",
+  "type": "awake/exchange",
+  "aud": sha3_256(requestorTempDid),
   "key": encyptedKey,
-  "iv": bytes,
-  "ucan": encryptedUcan 
+  "iv": iv,
+  "resauth": encryptedUcan 
 }
 ```
 
-## 3.4. Requester Authenticates
+## 3.4. Requestor Challenge
 
 ```
-Requester                  Responder
+Requestor                  Responder
     ⋮                          ⋮
-    │        actual did        │ (4a)
-    │       & validation       │ (4b)
+    │        Actual DID        │ (4a)
+    │        & Challenge       │ (4b)
     ├─────────────────────────►│
     ⋮                          ⋮
 ```
 
-``` javascript
-{
-  "awake": "authenticate",
-  "id": hashAesKey
-  "payload": encryptedPayload
-}
+At this stage, the Responder has been validated, but the Requestor is unknown. The Requestor now MUST provide their actual DID over the secure channel, and MUST prove that they are a trusted party rather than a PITM, evesdropper, or phisher. This is accomplished in a single message.
 
-// Encrypted payload
-{
-  "did": trueRequesterDid,
-  // either
-  "pin": outOfBandPin, // FIXME requestor specified method in previous step
-  // or
-  "ucan": ucan
-}
-```
+### 3.4.1 Actual DID
+
+The payload 
+
 
 The requestor displays a challenge (PIN code) to the user. It sends the PIN and DID/signing key (encrypted with the AES key) over pubsub. The UCAN holder decrypts and displays this PIN to the user and asks them to confirm that it matches. If it matches, you are talking to the correct machine, and you have the DID to delegate to 🎉
 
 If the user declines the PIN, the UCAN token holder should send a denied message to the requestor.
+
+
+
+### 3.4.2 Authorization
+
+The Requestor MUST provide the proof of authorization set in the Responder payload in s3.3.2 (FIXME). The RECOMMENDED authorization methods are PIN validation (`pin`) and UCAN (`ucan`). Note that if the Requestor does not know how to respond to fulfill an authorization method, AWAKE will fail.
+
+#### 3.4.2.1 PIN Challenge
+
+Out-of-band PIN challenges are most useful when the Requestor would not be able to provide UCAN validation, such as when signing into a new device that has not been delegated to yet. The PIN MUST be set by the Responder, and transmitted out of band. Some examples of out of band transmission include displaying text on screen, email, text message, or QR code.
+
+The PIN values MUST be within the UTF-8 character set. The PIN MUST be encoded as base64-padded in the `pin` field. It is RECOMMENDED that the PIN be restricted to human-readable characters, and 4 to 10 characters long. If a very long challenge is required, it is RECOMMENDED that the SHA3 hash of the challenge be used rather than putting a large challenge over the wire.
+
+```javascript
+// Encrypted payload
+{
+  "did": trueRequestorDid,
+  "pin": outOfBandPin
+}
+```
+
+#### 3.4.2.2 UCAN
+
+The encrypted payload 
+
+```javascript
+// Encrypted payload
+{
+  "did": trueRequestorDid,
+  "ucan": ucan
+}
+```
+
+```
+         UCAN Auth
+
+┌─────────AES-GCM────────┐
+│                        │
+│  ┌───────UCAN───────┐  │
+│  │                  │  │
+│  │  iss: Requestor  │  │
+│  │  aud: Responder  │  │
+│  │  att: []         │  │
+│  │  prf: ...        │  │
+│  │                  │  │
+│  └──────────────────┘  │
+│                        │
+└────────────────────────┘
+```
+
+
+
+### 3.4.3 Payload
+
+| Field  | Value                        | Purpose                                                | Required |
+| ------ | ---------------------------- | ------------------------------------------------------ | -------- |
+| `awv`  | `"0.1.0"`                    | AWAKE message version                                  | Yes      |
+| `type` | `"awake/reqauth"`            | "Requestor Auth" message type                          | Yes      |
+| `id`   | `sha3_256(tempDid + aesKey)` | The session ID                                         | Yes      |
+| `iv`   |                              | Initialization vector for the encrypted `ucan` payload | Yes      |
+| `auth` |                              | Encrypted Requestor auth encoded as base64-padded      | Yes      |
+
+#### 3.4.3.1 Example
+
+``` javascript
+{
+  "awv": "0.1",
+  "type": "awake/challenge",
+  "id": sha3_256(`${tempDid}${aesKey}`),
+  "iv": iv,
+  "auth": encryptedReqAuth
+}
+```
+
+
 
 #### Example
 
@@ -314,3 +380,10 @@ In a future version, AES-GCM may be replaced with AES-SIV-GCM or XChaCha20-Poly1
 
 
 Eve 🦹‍♀️ has no incentive to delegate rights other than to hide from detection. However, in this scenario where she somehow already has a valid UCAN, the game was already over. There are remedies available (revocation & rotation) were that to happen. AWAKE aims to minimize this possibility from the outset (Alice 👩‍💻 would have to agree to granting Eve 🦹‍♀️ these rights due to human error).
+
+
+# TODOS
+
+* [ ] Timeouts
+* [ ] Cancelation messages
+* [ ] Requestor specify purpose of request
