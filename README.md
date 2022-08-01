@@ -220,33 +220,35 @@ The validation UCAN MUST NOT be used to delegate any capabilities. This UCAN MUS
 
 ### 3.3.3 Challenge
 
-The Responder picks the method of challege to validate the Requestor. FIXME FIXME FIXME for the next step: out-of-band pin (e.g. linking) or existing UCAN (e.g. chat)
+The Responder picks the method of challege to validate the Requestor. FIXME FIXME FIXME for the next step: out-of-band pin (e.g. linking) or existing UCAN (e.g. chat) FIXME include the caps it needs.
 
 ### 3.3.4 Payload
 
-| Field     | Value               | Purpose                                                     | Required |
-| --------- | ------------------- | ----------------------------------------------------------- | -------- |
-| `awv`     | `"0.1.0"`           | AWAKE message version                                       | Yes      |
-| `type`    | `"awake/exchange"`  | Signal which step of AWAKE this payload is for              | Yes      |
-| `aud`     | `sha3_256(tempDid)` | 256-bit SHA3 hash of the Requestor temp DID                 | Yes      |
-| `key`     |                     | An RSA-encrypted AES key used to encrypt the `ucan` payload | Yes      |
-| `iv`      |                     | Initialization vector for the encrypted `ucan` payload      | Yes      |
-| `resauth` |                     | AES-GCM-encrypted validation UCAN, encoded as base64-padded | Yes      |
+| Field  | Value               | Purpose                                                     | Required |
+| ------ | ------------------- | ----------------------------------------------------------- | -------- |
+| `awv`  | `"0.1.0"`           | AWAKE message version                                       | Yes      |
+| `type` | `"awake/auth/res"`  | Signal which step of AWAKE this payload is for              | Yes      |
+| `aud`  | `sha3_256(tempDid)` | 256-bit SHA3 hash of the Requestor temp DID                 | Yes      |
+| `key`  |                     | An RSA-encrypted AES key used to encrypt the `auth` payload | Yes      |
+| `iv`   |                     | Initialization vector for the encrypted `auth` payload      | Yes      |
+| `auth` |                     | AES-GCM-encrypted validation UCAN, encoded as base64-padded | Yes      |
 
 #### 3.3.4.1 JSON Example
 
 ``` javascript
 {
   "awv": "0.1.0",
-  "type": "awake/exchange",
+  "type": "awake/auth/res",
   "aud": sha3_256(requestorTempDid),
   "key": encyptedKey,
   "iv": iv,
-  "resauth": encryptedUcan 
+  "auth": encryptedUcan 
 }
 ```
 
 ## 3.4. Requestor Challenge
+
+**NOTE: The Requestor is not yet trusted at this step, and MUST be treated as a possible impersonator or PITM**
 
 ```
 Requestor                  Responder
@@ -257,48 +259,55 @@ Requestor                  Responder
     ⋮                          ⋮
 ```
 
-At this stage, the Responder has been validated, but the Requestor is unknown. The Requestor now MUST provide their actual DID over the secure channel, and MUST prove that they are a trusted party rather than a PITM, evesdropper, or phisher. This is accomplished in a single message.
+At this stage, the Responder has been validated, but the Requestor is still untrusted. The Requestor now MUST provide their actual DID over the secure channel, and MUST prove that they are a trusted party rather than a PITM, evesdropper, or phisher. This is accomplished in a single message.
 
-### 3.4.1 Actual DID
+The Requestor MUST provide the proof of authorization set in the Responder payload in s3.3.2 (FIXME). The RECOMMENDED authorization methods are PIN validation (`pin`) and UCAN (`ucan`). Note that if the Requestor does not know how to respond to fulfill an authorization method, the AWAKE connection MUST fail with a `type: "awake/error/unknownauthtype"` FIXME define message type
 
-The payload 
+### 3.4.2 Payload
 
+| Field  | Value                        | Purpose                                                | Required |
+| ------ | ---------------------------- | ------------------------------------------------------ | -------- |
+| `awv`  | `"0.1.0"`                    | AWAKE message version                                  | Yes      |
+| `type` | `"awake/auth/req"`           | "Requestor Auth" message type                          | Yes      |
+| `id`   | `sha3_256(tempDid + aesKey)` | The session ID                                         | Yes      |
+| `iv`   |                              | Initialization vector for the encrypted `ucan` payload | Yes      |
+| `auth` |                              | Encrypted challenge encoded as base64-padded           | Yes      |
 
-The requestor displays a challenge (PIN code) to the user. It sends the PIN and DID/signing key (encrypted with the AES key) over pubsub. The UCAN holder decrypts and displays this PIN to the user and asks them to confirm that it matches. If it matches, you are talking to the correct machine, and you have the DID to delegate to 🎉
+The challenge MUST be encrypted with the session key and IV from the enclosing payload.
 
-If the user declines the PIN, the UCAN token holder should send a denied message to the requestor.
+### 3.4.2.1 Example
 
+``` javascript
+{
+  "awv": "0.1.0",
+  "type": "awake/reqauth",
+  "id": sha3_256(`${tempDid}${aesKey}`),
+  "iv": iv,
+  "auth": encryptedChallenge
+}
+```
 
-
-### 3.4.2 Authorization
-
-The Requestor MUST provide the proof of authorization set in the Responder payload in s3.3.2 (FIXME). The RECOMMENDED authorization methods are PIN validation (`pin`) and UCAN (`ucan`). Note that if the Requestor does not know how to respond to fulfill an authorization method, AWAKE will fail.
-
-#### 3.4.2.1 PIN Challenge
+#### 3.4.2.2 PIN Challenge
 
 Out-of-band PIN challenges are most useful when the Requestor would not be able to provide UCAN validation, such as when signing into a new device that has not been delegated to yet. The PIN MUST be set by the Responder, and transmitted out of band. Some examples of out of band transmission include displaying text on screen, email, text message, or QR code.
 
 The PIN values MUST be within the UTF-8 character set. The PIN MUST be encoded as base64-padded in the `pin` field. It is RECOMMENDED that the PIN be restricted to human-readable characters, and 4 to 10 characters long. If a very long challenge is required, it is RECOMMENDED that the SHA3 hash of the challenge be used rather than putting a large challenge over the wire.
 
+This challenge MUST be encrypted with the session key and IV from the enclosing payload.
+
 ```javascript
-// Encrypted payload
 {
-  "did": trueRequestorDid,
-  "pin": outOfBandPin
+  "did": requestorDid,
+  "pin": outOfBandPin,
+  "sig": base64Padded(sign(requestorPK, sha3(requestorDid + base64PaddedSessionKey + outOfBandPin))) // FIXME required?
 }
 ```
 
-#### 3.4.2.2 UCAN
+#### 3.4.2.3 UCAN Challenge
 
-The encrypted payload 
+If UCAN auth is set by the Responder, the Requestor MUST provide a UCAN much like the one used by the Responder in s3.3 (FIXME). The UCAN MUST be encrypted with the session key and the IV from the encosing payload, MUST be given in a raw format (not further base64 encoded), and MUST be inline (without a JSON object wrapper or similar). The encrypted value MUST be encoded as base64-padded.
 
-```javascript
-// Encrypted payload
-{
-  "did": trueRequestorDid,
-  "ucan": ucan
-}
-```
+The UCAN MUST be issued (`iss`) by the Requestor's DID (not the temporary DID), and its audience (`aud`) MUST be the Responder's DID. The `att` field MUST be set to an empty array (i.e. it MUST NOT delegate any capabilities). The `prf` array MUST fulfill the capabilities set by the Responder.
 
 ```
          UCAN Auth
@@ -309,6 +318,7 @@ The encrypted payload
 │  │                  │  │
 │  │  iss: Requestor  │  │
 │  │  aud: Responder  │  │
+│  │  fct: AES-GCM    │  │
 │  │  att: []         │  │
 │  │  prf: ...        │  │
 │  │                  │  │
@@ -318,49 +328,6 @@ The encrypted payload
 ```
 
 
-
-### 3.4.3 Payload
-
-| Field  | Value                        | Purpose                                                | Required |
-| ------ | ---------------------------- | ------------------------------------------------------ | -------- |
-| `awv`  | `"0.1.0"`                    | AWAKE message version                                  | Yes      |
-| `type` | `"awake/reqauth"`            | "Requestor Auth" message type                          | Yes      |
-| `id`   | `sha3_256(tempDid + aesKey)` | The session ID                                         | Yes      |
-| `iv`   |                              | Initialization vector for the encrypted `ucan` payload | Yes      |
-| `auth` |                              | Encrypted Requestor auth encoded as base64-padded      | Yes      |
-
-#### 3.4.3.1 Example
-
-``` javascript
-{
-  "awv": "0.1",
-  "type": "awake/challenge",
-  "id": sha3_256(`${tempDid}${aesKey}`),
-  "iv": iv,
-  "auth": encryptedReqAuth
-}
-```
-
-
-
-#### Example
-
-📱 receives the above message and extracts the sender's DID (and thus PK). It then [verifies](https://developer.mozilla.org/en-US/docs/Web/API/SubtleCrypto/verify) that the sender's PK is in the list of exchange keys found in DNS for the target username.
-
-If PIN validation fails, you MUST ignore the message. It's Eve trying to get you to delegate rights to her 🦹‍♀️ **You MUST start over, since that channel is compromised.**
-
-### **6. Credential Delegation**
-
-Now that we know that the message can be trusted, the token holder creates a UCAN with delegate rights for the requestor using their DID from the most recent message. Send that UCAN and the WNFS read key (which is also an AES key) back over the pubsub channel — of course, encrypted with the AES session key.
-
-```javascript
-aesEncrypt(
-  key: sessionKey,
-  payload: {
-  "readKey": wnfsReadKey,
-  "ucan": newUcan
-})
-```
 
 # FAQ
 
@@ -386,4 +353,6 @@ Eve 🦹‍♀️ has no incentive to delegate rights other than to hide from de
 
 * [ ] Timeouts
 * [ ] Cancelation messages
+* [ ] Errors
 * [ ] Requestor specify purpose of request
+* [ ] Add subsection about session key to intro
