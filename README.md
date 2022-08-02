@@ -19,7 +19,7 @@ The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT", "SHOULD", "S
 
 # 1 Introduction
 
-The core problem that AWAKE solves is bootstrapping a secure session on top of a public channel. Key exchanges for point-to-point communication are plentiful, but in open, trusteless protocols, rooting trust can be a barrier for ad hoc communications channels. Two common approaches are to use a trusted certificate authority, or ignore the principal and "merely" establish a point-to-point channel.
+AWAKE bootstraps a secure session on top of a public channel. Key exchanges for point-to-point communication are plentiful, but in open, trusteless protocols, rooting trust can be a barrier for ad hoc communications channels. Two common approaches are to use a trusted certificate authority, or ignore the principal and "merely" establish a point-to-point channel.
 
 Capability-based systems have a helpful philosophy towards a third path. By emphasizing authorization over authentication, they provide a way to know something provable about what the other party "can do", even if they have no sure way of knowing "who they are". One way of phrasing this is that such an agent is "functionally equivalent to the principal in this context". AWAKE makes use of authorization to bootstrap point-to-point sessions that are both secure and mutually trusted.
 
@@ -44,7 +44,7 @@ All payloads MUST include the "AWAKE Version" field `awv: "0.1.0"`. Payloads MUS
 
 ## 2 Sequence
 
-AWAKE proceeds in one connecion step and four communication rounds:
+AWAKE proceeds in one connection step, four communication rounds, and an OPTIONAL disconnection:
 
 1. Both parties subscribe to a well-known channel
 2. Requestor broadcasts intent
@@ -57,6 +57,7 @@ AWAKE proceeds in one connecion step and four communication rounds:
     * a. Requestor sends actual DID
     * b. Requestor sends instance validation (e.g. UCAN or out-of-band PIN)
 5. Responder sends an `ACK`
+6. Either party disconnects
 
 ```
 Attacker                 Requestor                  Responder
@@ -77,13 +78,18 @@ Attacker                 Requestor                  Responder
    │                         │           ACK            │ (5)
    │                         │◄─────────────────────────┤
    │                         │                          │
+   │                         │                          │
+   │                         │           FIN            │ (6)
+   │                         │◄────────────────────────►│
 ```
     
 # 3. Detailed Stages
 
 ## 3.1 Subscribe to Common Channel
 
-AWAKE begins by all parties listening on a common channel. The channel itself is unimportant: it MAY be public, broadcast to all listeners, be assynchronous, and over any transport. To reduce channel noise, it is RECOMMENDED that this channel be specific to some topic. For instance, a websocket channel on the topic `awake:did:key:zStEZpzSMtTt9k2vszgvCwF4fLQQSyA15W5AQ4z3AR6Bx4eFJ5crJFbuGxKmbma4` MAY be used for messages about resources owned by `did:key:zStEZpzSMtTt9k2vszgvCwF4fLQQSyA15W5AQ4z3AR6Bx4eFJ5crJFbuGxKmbma4`.
+AWAKE begins by all parties listening on a common channel. The channel itself is unimportant: it MAY be public, broadcast to all listeners, be assynchronous, and over any transport. To reduce channel noise, it is RECOMMENDED that this channel be specific to some topic.
+
+For instance, a websocket channel on the topic `awake:did:key:zStEZpzSMtTt9k2vszgvCwF4fLQQSyA15W5AQ4z3AR6Bx4eFJ5crJFbuGxKmbma4` MAY be used for messages about resources owned by `did:key:zStEZpzSMtTt9k2vszgvCwF4fLQQSyA15W5AQ4z3AR6Bx4eFJ5crJFbuGxKmbma4`.
 
 ## 3.2 Requestor Broadcasts Intent
 
@@ -98,7 +104,7 @@ Attacker                 Requestor                  Responder
    ⋮                         ⋮                          ⋮
 ```
 
-In this step, the Requestor broadcasts a temporary DID, and some criterea that a Responder MUST provide in STep 3 (FIXME). Both pieces of information are sent in a single message. This request payload MUST contain the `did` and `caps` fields. The `caps` field MAY be an empty array.
+In this step, the Requestor broadcasts a temporary DID, and some criterea that a Responder MUST provide in [§3.3](https://github.com/ucan-wg/awake/blob/port/README.md#33-responder-establishes-point-to-point-session). Both pieces of information are sent in a single message. This request payload MUST contain the `did` and `caps` fields. The `caps` field MAY be an empty array.
 
 The payload stage MUST be signalled by the message type `"awake/init"`.
 
@@ -208,9 +214,9 @@ The key used in this step MUST be used as input key material (IKM) to derive key
 }
 ```
 
-The entire UCAN MUST be encrypted with the same AES key as included in the facts section. The AES key MUST use GCM mode. The encrypted payload MUST have the IV appended prior to encryption.
+The entire UCAN MUST be encrypted with the same AES key as included in the facts section. The GCM operation mode MUST be used.
 
-The IV MUST be freshly generated for every message in this session. If the session is not fully established, the AES key MUST be immedietly discarded and MUST NOT ever be reused.
+The encrypted payload MUST have the IV appended prior to encryption. The IV MUST be freshly generated for every message in this session. If the session is not fully established, the AES key MUST be immedietly discarded and MUST NOT ever be reused.
 
 ### 3.3.2 Validation UCAN
 
