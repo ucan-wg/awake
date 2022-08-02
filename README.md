@@ -11,17 +11,19 @@
 
 # 0. Abstract
 
-Authorized Wire Authenticated Key Exchange (AWAKE) is an [AKE](https://en.wikipedia.org/wiki/Authenticated_Key_Exchange) built on top of the [UCAN auth token](https://github.com/ucan-wg/spec). AWAKE is similar to other mutual authentication schemes, such as self-signed [mTLS](https://datatracker.ietf.org/doc/html/rfc8705), but with a focus on authorization proofs. AWAKE leverages the capability chain to prove access to some resource, validating that the requestor is communicating with a party capable of performing certain actions. This is a helpful root of trust with a well defined context when establishing a secure communications channel.
-
-The core problem that AWAKE solves is bootstrapping a secure session on top of a public channel. Key exchanges for point-to-point communication are plentiful, but in open, trusteless protocols, rooting trust can be a barrier for ad hoc communications channels. Two common approaches are to use a trusted certificate authority, or ignore the principal and "merely" establish a point-to-point channel.
-
-Capability-based systems have a helpful philosophy towards a third path. By emphasizing authorization over authentication, they provide a way to know something provable about what the other party "can do", even if they have no sure way of knowing "who they are". One way of phrasing this is that such an agent is "functionally equivalent to the principal in this context".
+Authorized Wire Authenticated Key Exchange (AWAKE) is an [AKE](https://en.wikipedia.org/wiki/Authenticated_Key_Exchange) built on top of the [UCAN auth token](https://github.com/ucan-wg/spec). AWAKE is similar to other mutual authentication schemes (such as self-signed [mTLS](https://datatracker.ietf.org/doc/html/rfc8705)), but with a focus on authorization and proof. AWAKE leverages the UCAN capability chain to prove access to some resource, validating that the requestor is communicating with a party capable of performing certain actions. This is a helpful root of trust with a well defined context when establishing a secure communications channel.
 
 ## Language
 
 The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT", "SHOULD", "SHOULD NOT", "RECOMMENDED", "MAY", and "OPTIONAL" in this document are to be interpreted as described in [RFC 2119](https://datatracker.ietf.org/doc/html/rfc2119).
 
 # 1 Introduction
+
+The core problem that AWAKE solves is bootstrapping a secure session on top of a public channel. Key exchanges for point-to-point communication are plentiful, but in open, trusteless protocols, rooting trust can be a barrier for ad hoc communications channels. Two common approaches are to use a trusted certificate authority, or ignore the principal and "merely" establish a point-to-point channel.
+
+Capability-based systems have a helpful philosophy towards a third path. By emphasizing authorization over authentication, they provide a way to know something provable about what the other party "can do", even if they have no sure way of knowing "who they are". One way of phrasing this is that such an agent is "functionally equivalent to the principal in this context". AWAKE makes use of authorization to bootstrap point-to-point sessions that are both secure and mutually trusted.
+
+FIXME add section about KDF in the intro
 
 ## 1.1 Payload Fields
 
@@ -30,7 +32,7 @@ All payloads MUST include the "AWAKE Version" field `awv: "0.1.0"`. Payloads MUS
 | Field  | Value          | Description           | Required |
 | ------ | -------------- | --------------------- | -------- |
 | `awv`  | `"0.1.0"`      | AWAKE message version | Yes      |
-| `type` | `awake/<type>` | Step message type     | Yes      |
+| `type` | `awake/<type>` | AWAKE message type    | Yes      |
 
 ## 1.2 Roles
 
@@ -76,21 +78,12 @@ Attacker                 Requestor                  Responder
    │                         │◄─────────────────────────┤
    │                         │                          │
 ```
-
+    
 # 3. Detailed Stages
 
 ## 3.1 Subscribe to Common Channel
 
-AWAKE begins by all parties listening on a common channel. The channel itself is unimportant: it MAY be public, broadcast to all listeners, be assynchronous, and over any transport. To reduce channel noise, it is RECOMMENDED that this channel be specific to some topic. For instance, a websocket channel on the topic`awake:did:key:zStEZpzSMtTt9k2vszgvCwF4fLQQSyA15W5AQ4z3AR6Bx4eFJ5crJFbuGxKmbma4` MAY be used for messages about resources owned by `did:key:zStEZpzSMtTt9k2vszgvCwF4fLQQSyA15W5AQ4z3AR6Bx4eFJ5crJFbuGxKmbma4`.
-
-Graceful disconnection from an AWAKE attempt can be broadcast at any step with the following payload:
-
-``` javascript
-{
-  "awake": "fin", 
-  "did": requestorTrueOrTempDid
-}
-```
+AWAKE begins by all parties listening on a common channel. The channel itself is unimportant: it MAY be public, broadcast to all listeners, be assynchronous, and over any transport. To reduce channel noise, it is RECOMMENDED that this channel be specific to some topic. For instance, a websocket channel on the topic `awake:did:key:zStEZpzSMtTt9k2vszgvCwF4fLQQSyA15W5AQ4z3AR6Bx4eFJ5crJFbuGxKmbma4` MAY be used for messages about resources owned by `did:key:zStEZpzSMtTt9k2vszgvCwF4fLQQSyA15W5AQ4z3AR6Bx4eFJ5crJFbuGxKmbma4`.
 
 ## 3.2 Requestor Broadcasts Intent
 
@@ -105,19 +98,19 @@ Attacker                 Requestor                  Responder
    ⋮                         ⋮                          ⋮
 ```
 
-In this step, the Requestor broadcasts a temporary DID, and some criterea that it extects a Responder to provide. Both pieces of information are sent in a single message. This request payload MUST contain the `did` and `caps` fields. The `caps` field MAY be an empty array.
+In this step, the Requestor broadcasts a temporary DID, and some criterea that a Responder MUST provide in STep 3 (FIXME). Both pieces of information are sent in a single message. This request payload MUST contain the `did` and `caps` fields. The `caps` field MAY be an empty array.
 
-The payload stage MUST be signalled by the pair `"awake": "init"`.
+The payload stage MUST be signalled by the message type `"awake/init"`.
 
 ### 3.2.1 Temporary DID
 
-The Requestor generates a fresh 2048-bit [RSA-OAEP](https://datatracker.ietf.org/doc/html/rfc3447) key pair. This key pair MUST be referenced as a [`did:key`](https://w3c-ccg.github.io/did-method-key/) in the payload.
+Since this message is sent entirely in the clear, the Requestor MUST generate a fresh 2048-bit [RSA-OAEP](https://datatracker.ietf.org/doc/html/rfc3447) key pair per AWAKE initialization attempt, and MUST use this as a temporary identity until a secure channel is established in Step 4 (FIXME). This key pair MUST be referenced as a [`did:key`](https://w3c-ccg.github.io/did-method-key/) in the payload.
 
-This "temporary DID", and MUST only be used for key exchange. It MUST NOT be used for signatures, and MUST NOT be persisted past this one session boostrap (i.e. discard after [Step 3](#33-responder-establishes-point-to-point-session)).
-
+This "temporary DID", and MUST only be used for key exchange. This RSA key pair MUST NOT be used for signatures, and MUST NOT be persisted past this one session boostrap (i.e. discard after [Step 3](#33-responder-establishes-point-to-point-session)). It is RECOMMENDED that the private key be non-extractable when possible, such as via the [WebCrypto API](https://developer.mozilla.org/en-US/docs/Web/API/SubtleCrypto/generateKey).
+    
 ### 3.2.2 Authorization Criterea
 
-The Requestor MAY also include validation criterea expected from the Responder. This MUST be passed as an array of [UCAN capabilities](https://github.com/ucan-wg/spec#23-capability). The Responder will have to prove access to these capabilties.
+The Requestor MAY also include validation criterea expected from the Responder. This MUST be passed as an array of [UCAN capabilities](https://github.com/ucan-wg/spec#23-capability). The Responder MUST be able to prove access to these capabilties in [§3.3](https://github.com/ucan-wg/awake/blob/port/README.md#33-responder-establishes-point-to-point-session).
 
 ### 3.2.3 Payload
 
@@ -165,9 +158,9 @@ Requestor                  Responder
     ⋮                          ⋮
 ```
 
-In this step, the Responder MUST prove that they have access to the requested resources, and sets up a protected point-to-point connection. This is used to establish trust in the capabilities of the Responder, but MUST NOT actually delegating anything.
+In this step, the Responder MUST prove that they have access to the requested resources, and MUST set the input key material (IKM) that will be used to start a protected point-to-point connection. This is used to establish trust in the capabilities of the Responder, but MUST NOT actually delegating anything.
 
-The temporary RSA key from the previous step MUST be exclusively used for exchanging a 256-bit AES-GCM "session key". RSA is both slow and can only hold a limited number of bytes, so using it to encrypt the payloads of the rest of the session is infeasable.
+The temporary RSA key from the previous step MUST be exclusively used for exchanging a 256-bit AES "session key". RSA is both slow and can only hold a limited number of bytes, so using it to encrypt the payloads of the rest of the session is infeasable.
 
 The payload contains two encryption layers, and signature: the RSA envelope, the AES envelope, and the AES key signed by the Responder.
 
@@ -201,7 +194,7 @@ Upon receipt, the Requestor MUST validate that the UCAN capabilities fulfill the
 
 ### 3.3.1 Key Exchange
 
-The Responder MUST generate a fresh 256-bit AES-GCM key and 12-byte initialization vector (IV) per connection request. It is RECOMMENDED that the Responder track all DIDs requested with, and to only respond to each temporary DID exactly once.
+The Responder MUST generate a fresh 256-bit AES key and 12-byte initialization vector (IV) per connection request. It is RECOMMENDED that the Responder track all DIDs requested with, and to only respond to each temporary DID exactly once.
 
 The key used in this step MUST be used as input key material (IKM) to derive keys in rest of the AWAKE bootstrap. The AES key MUST be encoded as padded base64 and included in the facts (`fct`) section of the payload UCAN. The rest of the [validation UCAN is constructed](#332-validation-ucan) and signed per normal, thus including the AES key in the signature payload. This signature serves as proof that the AES key was intended for this specific session.
 
@@ -215,11 +208,9 @@ The key used in this step MUST be used as input key material (IKM) to derive key
 }
 ```
 
-The entire UCAN MUST be encrypted with the same AES-GCM key as included in the facts section, and using the IV before being added to the payload.
+The entire UCAN MUST be encrypted with the same AES key as included in the facts section. The AES key MUST use GCM mode. The encrypted payload MUST have the IV appended prior to encryption.
 
-The IV MUST be generated fresh for every message in this session. If the session is not fully established, the AES key MUST NOT ever be reused.
-
-FIXME add section about KDF in the intro
+The IV MUST be freshly generated for every message in this session. If the session is not fully established, the AES key MUST be immedietly discarded and MUST NOT ever be reused.
 
 ### 3.3.2 Validation UCAN
 
@@ -293,15 +284,13 @@ Requestor                  Responder
 
 FIXME change the key to treat the session key as a KDF
 
-This message MUST be encrypted with the key derived from `sha3_256(+ sessionKey)` -- FIXME note the hash chain in the introduction section! 
-
 At this stage, the Responder has been validated, but the Requestor is still untrusted. The Requestor now MUST provide their actual DID over the secure channel, and MUST prove that they are a trusted party rather than a PITM, evesdropper, or phisher. This is accomplished in a single message.
 
-The Requestor MUST provide the proof of authorization set in the Responder payload in s3.3.2 (FIXME). The RECOMMENDED authorization methods are PIN validation (`pin`) and UCAN (`ucan`). Note that if the Requestor does not know how to respond to fulfill an authorization method, the AWAKE connection MUST fail with a `type: "awake/error/unknownauthtype"` FIXME define message type
+The Requestor MUST provide the proof of authorization set in the Responder payload in [§3.3.2](https://github.com/ucan-wg/awake/blob/port/README.md#332-validation-ucan). The RECOMMENDED authorization methods are PIN validation (`pin`) and UCAN (`ucan`). Note that if the Requestor does not know how to respond to fulfill an authorization method, the AWAKE connection MUST fail with a `type: "awake/error/unknownauthtype"` FIXME define message type
 
 ### 3.4.2 Key Derivation
 
-The key used to encrypt this message MUST be the 256-bit SHA3 of the IKM from Step 3.3 (FIXME) prefixed by "awake/req"
+The key used to encrypt the `auth` field MUST be the 256-bit SHA3 of the IKM from [§3.3](https://github.com/ucan-wg/awake/blob/port/README.md#33-responder-establishes-point-to-point-session) prefixed by `"awake/req"`.
 
 ``` javascript
 reqStepKey = sha3_256("awake/req" + base64PaddedIkm)
@@ -309,17 +298,13 @@ reqStepKey = sha3_256("awake/req" + base64PaddedIkm)
 
 ### 3.4.2 Payload
 
-| Field  | Value                       | Description                                                | Required |
+| Field  | Value                       | Description                                            | Required |
 | ------ | --------------------------- | ------------------------------------------------------ | -------- |
 | `awv`  | `"0.1.0"`                   | AWAKE message version                                  | Yes      |
 | `type` | `"awake/req"`               | "Requestor Auth" message type                          | Yes      |
 | `id`   | `sha3_256(resDid + aesKey)` | The session ID                                         | Yes      |
 | `iv`   |                             | Initialization vector for the encrypted `ucan` payload | Yes      |
 | `auth` |                             | Encrypted challenge encoded as base64-padded           | Yes      |
-
-The challenge MUST be encrypted with the session key and IV from the enclosing payload.
-
-FIXME open question: should the type be hidden?
 
 ``` javascript
 {
@@ -331,13 +316,13 @@ FIXME open question: should the type be hidden?
 }
 ```
 
+The challenge (`auth` field) MUST be encrypted with the session key and IV from the enclosing payload.
+
 #### 3.4.2.2 Out-of-Band PIN Challenge
 
 Out-of-band PIN challenges are most useful when the Requestor would not be able to provide UCAN validation, such as when signing into a new device that has not been delegated to yet. The PIN MUST be set by the Responder, and transmitted out of band. Some examples of out of band transmission include displaying text on screen, email, text message, or QR code.
 
 The PIN values MUST be within the UTF-8 character set. The PIN MUST be encoded as base64-padded in the `pin` field. It is RECOMMENDED that the PIN be restricted to human-readable characters, and 4 to 10 characters long. If a very long challenge is required, it is RECOMMENDED that the SHA3 hash of the challenge be used rather than putting a large challenge over the wire.
-
-This challenge MUST be encrypted with the session key and IV from the enclosing payload.
 
 | Field  | Value                                                                    | Description                               | Required |
 | ------ | ------------------------------------------------------------------------ | ----------------------------------------- | -------- |
@@ -401,13 +386,27 @@ stepKey = sha3_256("awake/ack" + base64PaddedIkm)
 | ------ | --------------------------------------------------------- | ------------------------------------------------------ | -------- |
 | `awv`  | `"0.1.0"`                                                 | AWAKE message version                                  | Yes      |
 | `type` | `"awake/ack"`                                             | "AWAKE Acknowledgment" message type                    | Yes      |
-| `ack`  | `sha3_256(stepKey)`                                       |                                                        | Yes      |
+| `ack`  | `sha3_256(stepKey)`                                       | SHA3 of the step key                                   | Yes      |
 
 ### 3.5.3 Extended Fields
 
 This payload MAY contain additional fields. This is often useful if dovetailing the ACK with the first message of a session using the 
 
 The OKM (`stepKey` above) MAY be used to encrypt these additional fields.
+
+## 3.6 Disconnection
+
+Graceful disconnection from an AWAKE attempt can be broadcast at any step with the following payload:
+
+``` javascript
+{
+  "awv": "0.1.0",
+  "awake": "fin", 
+  "did": requestorTrueOrTempDid, // FIXME needs more info to prove that this cancellation is allowed
+}
+```
+
+This message MAY be broadcast at any time, including to cancel the AWAKE bootstrap.
 
 # 4 FAQ
 
@@ -437,3 +436,16 @@ Eve 🦹‍♀️ has no incentive to delegate rights other than to hide from de
 * [ ] Requestor specify purpose of request
 * [ ] Add subsection about session key to intro
 * [ ] Case insensitivity worth it?
+
+
+
+
+TODO address the following directly
+From Cloudflare article on mTLS: https://www.cloudflare.com/learning/access-management/what-is-mutual-tls/
+
+    On-path attacks: On-path attackers place themselves between a client and a server and intercept or modify communications between the two. When mTLS is used, on-path attackers cannot authenticate to either the client or the server, making this attack almost impossible to carry out.
+    Spoofing attacks: Attackers can attempt to "spoof" (imitate) a web server to a user, or vice versa. Spoofing attacks are far more difficult when both sides have to authenticate with TLS certificates.
+    Credential stuffing: Attackers use leaked sets of credentials from a data breach to try to log in as a legitimate user. Without a legitimately issued TLS certificate, credential stuffing attacks cannot be successful against organizations that use mTLS.
+    Brute force attacks: Typically carried out with bots, a brute force attack is when an attacker uses rapid trial and error to guess a user's password. mTLS ensures that a password is not enough to gain access to an organization's network. (Rate limiting is another way to deal with this type of bot attack.)
+    Phishing attacks: The goal of a phishing attack is often to steal user credentials, then use those credentials to compromise a network or an application. Even if a user falls for such an attack, the attacker still needs a TLS certificate and a corresponding private key in order to use those credentials.
+    Malicious API requests: When used for API security, mTLS ensures that API requests come from legitimate, authenticated users only. This stops attackers from sending malicious API requests that aim to exploit a vulnerability or subvert the way the API is supposed to function.
