@@ -27,6 +27,11 @@ The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT", "SHOULD", "S
 
 All payloads MUST include the "AWAKE Version" field `awv: "0.1.0"`. Payloads MUST also include a message type field `type` (see each stage for the value). All field keys and message type values MUST be case-insensitive.
 
+| Field  | Value          | Description           | Required |
+| ------ | -------------- | --------------------- | -------- |
+| `awv`  | `"0.1.0"`      | AWAKE message version | Yes      |
+| `type` | `awake/<type>` | Step message type     | Yes      |
+
 ## 1.2 Roles
 
 | Name      | Role                                                 |
@@ -116,7 +121,7 @@ The Requestor MAY also include validation criterea expected from the Responder. 
 
 ### 3.2.3 Payload
 
- | Field   | Value          | Description                                              | Required |
+| Field   | Value          | Description                                          | Required |
 | --------| -------------- | ---------------------------------------------------- | -------- |
 | `awv`   | `"0.1.0"`      | AWAKE message version                                | Yes      |
 | `type`  | `"awake/init"` | Signal which step of AWAKE this payload is for       | Yes      |
@@ -198,13 +203,13 @@ Upon receipt, the Requestor MUST validate that the UCAN capabilities fulfill the
 
 The Responder MUST generate a fresh 256-bit AES-GCM key and 12-byte initialization vector (IV) per connection request. It is RECOMMENDED that the Responder track all DIDs requested with, and to only respond to each temporary DID exactly once.
 
-The AES key MUST be encoded as padded base64 and included in the facts (`fct`) section of the payload UCAN. The rest of the [validation UCAN is constructed](#332-validation-ucan) and signed per normal, thus including the AES key in the signature payload. This signature serves as proof that the AES key was intended for this specific session.
+The key used in this step MUST be used as input key material (IKM) to derive keys in rest of the AWAKE bootstrap. The AES key MUST be encoded as padded base64 and included in the facts (`fct`) section of the payload UCAN. The rest of the [validation UCAN is constructed](#332-validation-ucan) and signed per normal, thus including the AES key in the signature payload. This signature serves as proof that the AES key was intended for this specific session.
 
 ``` javascript
 {
   fct: [
     {
-      "awake/key": aesKeyAsBase64Padded,
+      "awake/ikm": base64PaddedIkm,
     }
   ]
 }
@@ -214,13 +219,15 @@ The entire UCAN MUST be encrypted with the same AES-GCM key as included in the f
 
 The IV MUST be generated fresh for every message in this session. If the session is not fully established, the AES key MUST NOT ever be reused.
 
+FIXME add section about KDF in the intro
+
 ### 3.3.2 Validation UCAN
 
 The validation UCAN MUST NOT be used to delegate any capabilities. This UCAN MUST only be used to prove access to capabilities and sign the AES key. The `att` and `my` fields MUST be empty arrays.
 
 #### 3.3.2.1 Challenge
 
-The Responder picks the method of challege to validate the Requestor. This MUST be set in the `fct` section of the UCAN so that it is signed by the Responder. The RECOMMENDED authorization methods are out-of-band PIN validation (`oob-pin`) and UCAN (`ucan`).
+The Responder MUST set the method of challege to validate the Requestor. This MUST be set in the `fct` section of the UCAN so that it is signed by the Responder. The RECOMMENDED authorization methods are out-of-band PIN validation (`oob-pin`) and UCAN (`ucan`).
 
 To set the challenge as `oob-pin`, the `fct` section of the UCAN MUST include the following:
 
@@ -249,23 +256,23 @@ To set the challenge as `ucan`, the `fct` section of the UCAN MUST include the f
 
 ### 3.3.3 Payload
 
-| Field  | Value               | Description                                                     | Required |
-| ------ | ------------------- | ----------------------------------------------------------- | -------- |
-| `awv`  | `"0.1.0"`           | AWAKE message version                                       | Yes      |
-| `type` | `"awake/auth/res"`  | Signal which step of AWAKE this payload is for              | Yes      |
-| `aud`  | `sha3_256(tempDid)` | 256-bit SHA3 hash of the Requestor temp DID                 | Yes      |
-| `key`  |                     | An RSA-encrypted AES key used to encrypt the `auth` payload | Yes      |
-| `iv`   |                     | Initialization vector for the encrypted `auth` payload      | Yes      |
-| `auth` |                     | AES-GCM-encrypted validation UCAN, encoded as base64-padded | Yes      |
+| Field  | Value               | Description                                                           | Required |
+| ------ | ------------------- | --------------------------------------------------------------------- | -------- |
+| `awv`  | `"0.1.0"`           | AWAKE message version                                                 | Yes      |
+| `type` | `"awake/res"`       | "Responder's Auth" step message type                                  | Yes      |
+| `aud`  | `sha3_256(tempDid)` | 256-bit SHA3 hash of the Requestor temp DID                           | Yes      |
+| `ikm`  |                     | An RSA-encrypted IKM (initial AES) used to encrypt the `auth` payload | Yes      |
+| `iv`   |                     | Initialization vector for the encrypted `auth` payload                | Yes      |
+| `auth` |                     | AES-GCM-encrypted validation UCAN, encoded as base64-padded           | Yes      |
 
 #### 3.3.3.1 JSON Example
 
 ``` javascript
 {
   "awv": "0.1.0",
-  "type": "awake/auth/res",
+  "type": "awake/res",
   "aud": sha3_256(requestorTempDid),
-  "key": encyptedKey,
+  "ikm": encyptedSessionIKM,
   "iv": iv,
   "auth": encryptedUcan 
 }
@@ -284,20 +291,28 @@ Requestor                  Responder
     ⋮                          ⋮
 ```
 
-FIXME ALSO NEED TO SIGN WITH TMP KEY?!
+FIXME change the key to treat the session key as a KDF
 
-This message MUST be encrypted with the 256-bit SHA3 hash of the session key. -- FIXME note the hash chain in the introduction section! 
+This message MUST be encrypted with the key derived from `sha3_256(+ sessionKey)` -- FIXME note the hash chain in the introduction section! 
 
 At this stage, the Responder has been validated, but the Requestor is still untrusted. The Requestor now MUST provide their actual DID over the secure channel, and MUST prove that they are a trusted party rather than a PITM, evesdropper, or phisher. This is accomplished in a single message.
 
 The Requestor MUST provide the proof of authorization set in the Responder payload in s3.3.2 (FIXME). The RECOMMENDED authorization methods are PIN validation (`pin`) and UCAN (`ucan`). Note that if the Requestor does not know how to respond to fulfill an authorization method, the AWAKE connection MUST fail with a `type: "awake/error/unknownauthtype"` FIXME define message type
+
+### 3.4.2 Key Derivation
+
+The key used to encrypt this message MUST be the 256-bit SHA3 of the IKM from Step 3.3 (FIXME) prefixed by "awake/req"
+
+``` javascript
+reqStepKey = sha3_256("awake/req" + base64PaddedIkm)
+```
 
 ### 3.4.2 Payload
 
 | Field  | Value                       | Description                                                | Required |
 | ------ | --------------------------- | ------------------------------------------------------ | -------- |
 | `awv`  | `"0.1.0"`                   | AWAKE message version                                  | Yes      |
-| `type` | `"awake/auth/req"`          | "Requestor Auth" message type                          | Yes      |
+| `type` | `"awake/req"`               | "Requestor Auth" message type                          | Yes      |
 | `id`   | `sha3_256(resDid + aesKey)` | The session ID                                         | Yes      |
 | `iv`   |                             | Initialization vector for the encrypted `ucan` payload | Yes      |
 | `auth` |                             | Encrypted challenge encoded as base64-padded           | Yes      |
@@ -309,8 +324,8 @@ FIXME open question: should the type be hidden?
 ``` javascript
 {
   "awv": "0.1.0",
-  "type": "awake/auth/req",
-  "id": sha3_256(responderDid + base64PaddedSessionKey),
+  "type": "awake/req",
+  "id": sha3_256(reqStepKey),
   "iv": iv,
   "auth": encryptedChallenge
 }
@@ -324,16 +339,14 @@ The PIN values MUST be within the UTF-8 character set. The PIN MUST be encoded a
 
 This challenge MUST be encrypted with the session key and IV from the enclosing payload.
 
-| Field  | Value                                                                    | Description                                   | Required |
+| Field  | Value                                                                    | Description                               | Required |
 | ------ | ------------------------------------------------------------------------ | ----------------------------------------- | -------- |
 | `did`  |                                                                          | "Actual" Requestor DID                    | Yes      |
-| `pin`  |                                                                          | Out-of-band PIN                           | Yes      |
 | `sig`  | `base64Padded(sign(responderPK, sha3_256(responderDid + outOfBandPin)))` | Base64-padded signature of challenge hash | Yes      |
 
 ```javascript
 {
   "did": requestorDid,
-  "pin": outOfBandPin,
   "sig": signedHash
 }
 ```
@@ -364,6 +377,8 @@ The UCAN MUST be issued (`iss`) by the Requestor's DID (not the temporary DID), 
 
 # 3.5 Responder Acknowledgment
 
+The Responder MUST respond with an acknowledgement that the challenge in Step 4 (FIXME) was accepted.
+
 ```
 Requestor                  Responder
     ⋮                          ⋮
@@ -372,21 +387,27 @@ Requestor                  Responder
     │                          │
 ```
 
+### 3.5.1 Key Derivation
 
+The key used to encrypt this message MUST be the 256-bit SHA3 of the IKM from Step 3.3 (FIXME) prefixed by "awake/req"
 
+``` javascript
+stepKey = sha3_256("awake/ack" + base64PaddedIkm)
+```
 
-| Field  | Value                                                | Description                                            | Required |
-| ------ | ---------------------------------------------------- | ------------------------------------------------------ | -------- |
-| `awv`  | `"0.1.0"`                                            | AWAKE message version                                  | Yes      |
-| `type` | `"awake/ack"`                                        | "AWAKE Acknowledgment" message type                    | Yes      |
-| `id`   | `encrypt(sessionKey, sha3_256(reqDid + sessionKey))` |                                                        | Yes      |
+### 3.5.2 Payload
 
+| Field  | Value                                                     | Description                                            | Required |
+| ------ | --------------------------------------------------------- | ------------------------------------------------------ | -------- |
+| `awv`  | `"0.1.0"`                                                 | AWAKE message version                                  | Yes      |
+| `type` | `"awake/ack"`                                             | "AWAKE Acknowledgment" message type                    | Yes      |
+| `ack`  | `sha3_256(stepKey)`                                       |                                                        | Yes      |
 
+### 3.5.3 Extended Fields
 
-FIXME: MAY include more fields.
-FIXME This message MUST be encrypted with the DOUBLY HASHED 256-bit SHA3 hash of the session key. -- FIXME note the hash chain in the introduction section! 
+This payload MAY contain additional fields. This is often useful if dovetailing the ACK with the first message of a session using the 
 
-
+The OKM (`stepKey` above) MAY be used to encrypt these additional fields.
 
 # 4 FAQ
 
