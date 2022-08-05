@@ -25,7 +25,9 @@ Capability-based systems have a helpful philosophy towards a third path. By emph
 
 ## 1.1 Payload Fields
 
-All payloads MUST include the "AWAKE Version" field `awv: "0.1.0"`. Payloads MUST also include a message type field `type` (see each stage for the value). All field keys and message type values MUST be case-insensitive.
+Payloads are encoding agnostic, but JSON is RECOMMENDED.
+
+All payloads MUST include the "AWAKE version" field `awv: "0.1.0"`. Payloads MUST also include a message type field `type` (see each stage for the value). All field keys and message type values MUST be case-insensitive.
 
 | Field  | Value          | Description           | Required |
 | ------ | -------------- | --------------------- | -------- |
@@ -121,7 +123,7 @@ The AWAKE bootstrap MUST occur on this channel. After the secure session is esta
 ```
 Attacker                 Requestor                  Responder
    │                         │                          │ 
-   │        Temp DID  &      │        Temp DID &        │ (1a)
+   │        Temp DID &       │        Temp DID &        │ (1a)
    │       Auth Criterea     │      Auth Criterea       │ (1b)
    │◄────────────────────────┼─────────────────────────►│
    ⋮                         ⋮                          ⋮
@@ -135,7 +137,6 @@ The payload stage MUST be signalled by the message type `"awake/init"`.
 
 Since this message is sent entirely in the clear, the Requestor MUST generate a fresh P-256 key pair per AWAKE initialization attempt. This key MUST be used as the first step in the ECDH Double Ratchet.
 
-
 This key pair MUST be referenced as a [`did:key`](https://w3c-ccg.github.io/did-method-key/) in the payload.
 
 This "temporary DID", and MUST only be used for key exchange. This RSA key pair MUST NOT be used for signatures, and MUST NOT be persisted past this one session boostrap (i.e. discard after [Step 3](#33-responder-establishes-point-to-point-session)). It is RECOMMENDED that the private key be non-extractable when possible, such as via the [WebCrypto API](https://developer.mozilla.org/en-US/docs/Web/API/SubtleCrypto/generateKey).
@@ -147,7 +148,7 @@ The Requestor MAY also include validation criterea expected from the Responder. 
 ### 3.2.3 Payload
 
 | Field   | Value          | Description                                          | Required |
-| --------| -------------- | ---------------------------------------------------- | -------- |
+| ------- | -------------- | ---------------------------------------------------- | -------- |
 | `awv`   | `"0.1.0"`      | AWAKE message version                                | Yes      |
 | `type`  | `"awake/init"` | Signal which step of AWAKE this payload is for       | Yes      |
 | `did`   |                | The DID of the Requestor this is intended for        | Yes      |
@@ -190,12 +191,11 @@ Requestor                  Responder
     ⋮                          ⋮
 ```
 
-In this step, the Responder MUST prove that they have access to the requested resources, and MUST set the input key material (IKM) that will be used to start a protected point-to-point connection. This is used to establish trust in the capabilities of the Responder, but MUST NOT actually delegating anything.
+In this step, the Responder MUST prove that they have access to the requested resources. This is used to establish trust in the capabilities of the Responder, but MUST NOT actually delegate anything. This UCAN MUST contain the Requestor's temporary ECDH DID in the `aud` field. The `iss` field MUST contain the Responder's actual DID (i.e. not a temporary ECDH DID).
 
-FIXME switch to DR AES
-The temporary RSA key from the previous step MUST be exclusively used for exchanging a 256-bit AES "session key". RSA is both slow and can only hold a limited number of bytes, so using it to encrypt the payloads of the rest of the session is infeasable.
+This step starts the Double Ratchet. The Responder MUST generate a fresh ECDH P-256 key pair. This MUST be combined with the Requestor's ECDH public key to generate a 256-bit AES key, which MUST be used to encypt the private payload.
 
-The payload contains two encryption layers, and signature: the ECDH envelope, the AES envelope, and the AES key signed by the Responder.
+The payload contains two encryption layers, and signature: the ECDH components, the AES envelope, and the capability proof signed by the Responder's "true" DID.
 
 ```
           Payload
@@ -206,30 +206,33 @@ The payload contains two encryption layers, and signature: the ECDH envelope, th
    │         +         │
    │  Responder P-256  │
    │         =         │
-   │      AES-GCM      │
+   │    256-bit AES    │
    │         │         │
    └─────────┼─────────┘
              │
              ▼
-┌─────────AES-GCM────────┐
-│                        │
-│  ┌───────UCAN───────┐  │
-│  │                  │  │
-│  │  iss: Responder  │  │
-│  │  aud: Req-P256   │  │
-│  │  att: []         │  │
-│  │  prf: ...        │  │
-│  │                  │  │
-│  └──────────────────┘  │
-│                        │
-└────────────────────────┘
+┌─────────AES-GCM─────────┐
+│                         │
+│  ┌────────UCAN───────┐  │
+│  │                   │  │
+│  │  iss: Responder   │  │
+│  │  aud: Req-ECDH    │  │
+│  │  att: []          │  │
+│  │  fct: nextResECDH │  │
+│  │  prf: ...         │  │
+│  │                   │  │
+│  └───────────────────┘  │
+│                         │
+└─────────────────────────┘
 ```
 
 Upon receipt, the Requestor MUST validate that the UCAN capabilities fulfill their `caps` criterea. The UCAN itself MUST be valid, unrevoked, unexpired, and intended for the temporary DID (the `aud` field). If any of these checks fail, the session MUST be abandoned, the temporary DID regenerated, and the protocol restarted from [intention braodcast](#32-requestor-broadcasts-intent).
 
 ### 3.3.1 Validation UCAN
 
-The validation UCAN MUST NOT be used to delegate any capabilities. This UCAN MUST only be used to prove access to capabilities and sign the AES key. The `att` and `my` fields MUST be empty arrays.
+The validation UCAN MUST NOT be used to delegate any capabilities. This UCAN MUST only be used to prove access to capabilities and sign the AES key. The `att` and `my` fields MUST be empty arrays. The issuer (`iss`) field MUST contain the Responder's long-term DID (rather than the temporary ECDH DID). The audience (`aud`) field MUST contain the Requestor's temporary ECDH DID from §[3.2](#32-requestor-broadcasts-intent).
+
+This UCAN MUST be encrypted with the ECDH-generated 256-bit AES-GCM key plus IV before being placed into the payload in [§3.3.2](#332-payload).
 
 #### 3.3.1.1 Challenge
 
@@ -241,7 +244,9 @@ To set the challenge as `oob-pin`, the `fct` section of the UCAN MUST include th
 {
   ...,
   "fct": [
-    {"awake/challenge": "oob-pin"}
+    ...,
+    {"awake/challenge": "oob-pin"},
+    ...
   ]
 }
 ```
@@ -252,24 +257,49 @@ To set the challenge as `ucan`, the `fct` section of the UCAN MUST include the f
 {
   ...,
   "fct": [
+    ...,
     { 
       "awake/challenge": "ucan",
       "caps": [...requiredCaps] 
-    }
+    },
+    ...
   ]
 }
 ```
 
+If more than one `awake/challenge` field is set, the lowest-indexed one MUST be used.
+
+#### 3.3.1.2 Next Responder ECDH
+
+The UCAN's facts (`fct`) field MUST also include the next Responder ECDH public key (to be used in Step 4) encoded as `did:key`.
+
+``` javascript
+{
+  ...,
+  "fct": [
+    ...,
+    { 
+      "awake/nextpk": step4EcdhAsDid
+    },
+    ...
+  ]
+}
+```
+
+If more than one `awake/nextpk` field is set, the lowest-indexed one MUST be used.
+
 ### 3.3.2 Payload
 
-| Field  | Value         | Description                                                 | Required |
-| ------ | ------------- | ----------------------------------------------------------- | -------- |
-| `awv`  | `"0.1.0"`     | AWAKE message version                                       | Yes      |
-| `type` | `"awake/res"` | "Responder's Auth" step message type                        | Yes      |
-| `iss`  |               | Responder's ECDH P-256 DID                                  | Yes      |
-| `aud`  |               | The ECDH P-256 DID signalled by the Requestor in Step 2     | Yes      |
-| `iv`   |               | Initialization vector for the encrypted `auth` payload      | Yes      |
-| `auth` |               | AES-GCM-encrypted validation UCAN, encoded as base64-padded | Yes      |
+To start the Double Ratchet, the payload in this stage has the highest number of cleartext fields. Note that the value in the `res` field contain the temporary ECDH DIDs, and MUST NOT use the Responder's actual long-term DID. Conversely, the UCAN inside the encrypted payload MUST use the Responder's long-term DID.
+
+| Field  | Value         | Description                                                                      | Required |
+| ------ | ------------- | -------------------------------------------------------------------------------- | -------- |
+| `awv`  | `"0.1.0"`     | AWAKE message version                                                            | Yes      |
+| `type` | `"awake/res"` | "Responder's Auth" step message type                                             | Yes      |
+| `res`  |               | Responder's ECDH P-256 DID                                                       | Yes      |
+| `req`  |               | The ECDH P-256 DID signalled by the Requestor in Step 2                          | Yes      |
+| `iv`   |               | Initialization vector for the encrypted `auth` payload, encoded as base64-padded | Yes      |
+| `auth` |               | AES-GCM-encrypted validation UCAN, encoded as base64-padded                      | Yes      |
 
 #### 3.3.3.1 JSON Example
 
@@ -297,41 +327,31 @@ Requestor                  Responder
     ⋮                          ⋮
 ```
 
-FIXME change the key to treat the session key as a KDF
-
 At this stage, the Responder has been validated, but the Requestor is still untrusted. The Requestor now MUST provide their actual DID over the secure channel, and MUST prove that they are a trusted party rather than a PITM, evesdropper, or phisher. This is accomplished in a single message.
 
-The Requestor MUST provide the proof of authorization set in the Responder payload in [§3.3.2](https://github.com/ucan-wg/awake/blob/port/README.md#332-validation-ucan). The RECOMMENDED authorization methods are PIN validation (`pin`) and UCAN (`ucan`). Note that if the Requestor does not know how to respond to fulfill an authorization method, the AWAKE connection MUST fail with a `type: "awake/error/unknownauthtype"` FIXME define message type
+The Requestor MUST provide the proof of authorization set by the Responder payload in [§3.3.2](https://github.com/ucan-wg/awake/blob/port/README.md#332-validation-ucan). The RECOMMENDED authorization methods are PIN validation (`pin`) and UCAN (`ucan`). Note that if the Requestor does not know how to respond to fulfill an authorization method, the AWAKE connection MUST fail with a `type: "awake/error/unknownauthtype"` FIXME define message type
 
-### 3.4.2 Key Derivation
+### 3.4.1 Payload
 
-The key used to encrypt the `auth` field MUST be the 256-bit SHA3 of the IKM from [§3.3](https://github.com/ucan-wg/awake/blob/port/README.md#33-responder-establishes-point-to-point-session) prefixed by `"awake/req"`.
+The AES key for this payload MUST be derived from the Requestor's initial ECDH private key and the Repsonder's ECDH public key set in the UCAN in Step 3 (FIXME)
 
-``` javascript
-reqStepKey = sha3_256("awake/req" + base64PaddedIkm)
-```
-
-### 3.4.2 Payload
-
-| Field  | Value                       | Description                                            | Required |
-| ------ | --------------------------- | ------------------------------------------------------ | -------- |
-| `awv`  | `"0.1.0"`                   | AWAKE message version                                  | Yes      |
-| `type` | `"awake/req"`               | "Requestor Auth" message type                          | Yes      |
-| `id`   | `sha3_256(resDid + aesKey)` | The session ID                                         | Yes      |
-| `iv`   |                             | Initialization vector for the encrypted `ucan` payload | Yes      |
-| `auth` |                             | Encrypted challenge encoded as base64-padded           | Yes      |
+| Field  | Value                                         | Description                                                    | Required |
+| ------ | --------------------------------------------- | -------------------------------------------------------------- | -------- |
+| `awv`  | `"0.1.0"`                                     | AWAKE message version                                          | Yes      |
+| `type` | `"awake/msg"`                                 | Generic AWAKE message type                                     | Yes      |
+| `id`   | `sha3_256(reqStep2EcdhDid + ResStep3EcdhDid)` | Message ID                                                     | Yes      |
+| `iv`   |                                               | Initialization vector for the encrypted payload                | Yes      |
+| `msg`  |                                               | Fulfilled challenge payload encrypted with Step 4 ECDH AES-key | Yes      |
 
 ``` javascript
 {
   "awv": "0.1.0",
-  "type": "awake/req",
-  "id": sha3_256(reqStepKey),
+  "type": "awake/msg",
+  "id": sha3_256(reqStep2EcdhDid + ResStep3EcdhDid),
   "iv": iv,
-  "auth": encryptedChallenge
+  "msg": encryptedChallenge
 }
 ```
-
-The challenge (`auth` field) MUST be encrypted with the session key and IV from the enclosing payload.
 
 #### 3.4.2.2 Out-of-Band PIN Challenge
 
@@ -346,7 +366,7 @@ The PIN values MUST be within the UTF-8 character set. The PIN MUST be encoded a
 
 ```javascript
 {
-  "did": requestorDid,
+  "did": requestorActualDid,
   "sig": signedHash
 }
 ```
@@ -358,21 +378,21 @@ If UCAN auth is required by the Responder, the Requestor MUST provide a UCAN. Th
 The UCAN MUST be issued (`iss`) by the Requestor's DID (not the temporary DID), and its audience (`aud`) MUST be the Responder's DID. The `att` field MUST be set to an empty array (i.e. it MUST NOT delegate any capabilities). The `prf` array MUST fulfill the capabilities set by the Responder.
 
 ```
-         UCAN Auth
+              UCAN Auth
 
-┌─────────AES-GCM────────┐
-│                        │
-│  ┌───────UCAN───────┐  │
-│  │                  │  │
-│  │  iss: Requestor  │  │
-│  │  aud: Responder  │  │
-│  │  fct: AES-GCM    │  │
-│  │  att: []         │  │
-│  │  prf: ...        │  │
-│  │                  │  │
-│  └──────────────────┘  │
-│                        │
-└────────────────────────┘
+┌──────────────AES-GCM────────────┐
+│                                 │
+│  ┌────────────UCAN───────────┐  │
+│  │                           │  │
+│  │  iss: RequestorActualDid  │  │
+│  │  aud: ResponderActualDid  │  │
+│  │  fct: nextReqECDH         │  │
+│  │  att: []                  │  │
+│  │  prf: ...                 │  │
+│  │                           │  │
+│  └───────────────────────────┘  │
+│                                 │
+└─────────────────────────────────┘
 ```
 
 # 3.5 Responder Acknowledgment
@@ -387,61 +407,81 @@ Requestor                  Responder
     │                          │
 ```
 
-### 3.5.1 Key Derivation
+### 3.5.1 Payload
 
-The key used to encrypt this message MUST be the 256-bit SHA3 of the IKM from Step 3.3 (FIXME) prefixed by "awake/req"
+| Field  | Value                                         | Description                                                    | Required |
+| ------ | --------------------------------------------- | -------------------------------------------------------------- | -------- |
+| `awv`  | `"0.1.0"`                                     | AWAKE message version                                          | Yes      |
+| `type` | `"awake/msg"`                                 | Generic AWAKE message type                                     | Yes      |
+| `id`   | `sha3_256(reqStep4EcdhDid + ResStep3EcdhDid)` | Message ID                                                     | Yes      |
+| `iv`   |                                               | Initialization vector for the encrypted payload                | Yes      |
+| `msg`  |                                               | Fulfilled challenge payload encrypted with Step 4 ECDH AES-key | Yes      |
 
-``` javascript
-stepKey = sha3_256("awake/ack" + base64PaddedIkm)
-```
+#### 3.5.1.1 Encrypted Message
 
-### 3.5.2 Payload
-
-| Field  | Value                                                     | Description                                            | Required |
-| ------ | --------------------------------------------------------- | ------------------------------------------------------ | -------- |
-| `awv`  | `"0.1.0"`                                                 | AWAKE message version                                  | Yes      |
-| `type` | `"awake/ack"`                                             | "AWAKE Acknowledgment" message type                    | Yes      |
-| `ack`  | `sha3_256(stepKey)`                                       | SHA3 of the step key                                   | Yes      |
-
-### 3.5.3 Extended Fields
-
-This payload MAY contain additional fields. This is often useful if dovetailing the ACK with the first message of a session using the 
-
-The OKM (`stepKey` above) MAY be used to encrypt these additional fields.
-
-## 3.6 Disconnection
-
-Graceful disconnection from an AWAKE attempt can be broadcast at any step with the following payload:
+The encrypted message payload MUST include an `awake/ack` field, with a value of the requestor's long-term DID. This payload MAY contain additional fields. This is often useful if dovetailing the ACK with the first message of a session using the 
 
 ``` javascript
 {
-  "awv": "0.1.0",
-  "awake": "fin", 
-  "did": requestorTrueOrTempDid, // FIXME needs more info to prove that this cancellation is allowed
+  ...,
+  "awake/ack": reqActualDid,
+  ...
 }
 ```
 
-This message MAY be broadcast at any time, including to cancel the AWAKE bootstrap.
+## 3.6 Continuation
 
-# 4 FAQ
-
-## Why RSA-OAEP?
+Messages sent over an established AWAKE session MUST contain the following keys:
  
-The temporary key is an RSA-OAEP key due to its ubquity, including support for non-extractable private keys in the [WebCrypto API](https://developer.mozilla.org/en-US/docs/Web/API/Web\_Crypto\_API). A non-extractable key is RECOMMENDED whenever supported by the host platform.
+| Field  | Value                                           | Description                                                    | Required |
+| ------ | ----------------------------------------------- | -------------------------------------------------------------- | -------- |
+| `awv`  | `"0.1.0"`                                       | AWAKE message version                                          | Yes      |
+| `type` | `"awake/msg"`                                   | Generic AWAKE message type                                     | Yes      |
+| `id`   | `sha3_256(latestReqEcdhDid + latestResEcdhDid)` | Message ID                                                     | Yes      |
+| `iv`   |                                                 | Initialization vector for the encrypted payload                | Yes      |
+| `msg`  |                                                 | Fulfilled challenge payload encrypted with latest ECDH AES-key | Yes      |
 
-DHKE is not used because it's not supported in the WebCrypto API with a trusted key type. As soon as Curve25519 or similar are available, AWAKE will almost certainly switch to that.
+Additional cleartext keys MAY be used, but are NOT RECOMMENDED since they can leak information about your session or the payload. Encrypted payloads MAY be padded with random noise or broken across multiple messages to prevent certain kinds of metadata leakage.
 
-## Why not ECC?
+### 3.6.1 Encrypted Field Keys
 
-RSA is used because it is available with a nonexportable key in browsers, is ubiquitous on all other systems, and is not considered likely backdoored (the NIST ECCs are [considered highly suspect](http://safecurves.cr.yp.to)).
+Every encrypted payload MUST inlcude a `awake/nextpk` field, updating the public key of the sender for the next message(s). This continues the Double Ratchet and updates the AES key that will be used for successive messages.
 
+Additional fields MAY be included to contain futher payload.
 
-Note that there is nothing special about AES256-GCM. This key is symmetric and will be available in memory. As such, this protocol gains little from the WebCrypto API aside from potential hardware acceleration (which can be helpful against certain timings attacks).
+``` javascript
+{
+  ...,
+  "awake/nextpk": base64Padded(sendersNextEcdhPk)
+}
+```
 
-In a future version, AES-GCM may be replaced with AES-SIV-GCM or XChaCha20-Poly1305.
+## 3.7 Disconnection
 
+Graceful disconnection from an AWAKE attempt can be broadcast at any step with the following payload:
+ 
+| Field  | Value                                           | Description                                                    | Required |
+| ------ | ----------------------------------------------- | -------------------------------------------------------------- | -------- |
+| `awv`  | `"0.1.0"`                                       | AWAKE message version                                          | Yes      |
+| `type` | `"awake/msg"`                                   | Generic AWAKE message type                                     | Yes      |
+| `id`   | `sha3_256(latestReqEcdhDid + latestResEcdhDid)` | Message ID                                                     | Yes      |
+| `iv`   |                                                 | Initialization vector for the encrypted payload                | Yes      |
+| `msg`  |                                                 | Fulfilled challenge payload encrypted with latest ECDH AES-key | Yes      |
 
-Eve 🦹‍♀️ has no incentive to delegate rights other than to hide from detection. However, in this scenario where she somehow already has a valid UCAN, the game was already over. There are remedies available (revocation & rotation) were that to happen. AWAKE aims to minimize this possibility from the outset (Alice 👩‍💻 would have to agree to granting Eve 🦹‍♀️ these rights due to human error).
+This message MAY be broadcast at any time duing an AWAKE session, including to cancel the AWAKE bootstrap attempt. This payload SHOULD NOT contain any other keys.
+
+### 3.7.1 Encrypted Field Keys
+
+``` javascript
+{
+  "awake/fin": "disconnect"
+}
+```
+
+# 4 Security
+
+Key flooding, GCing old keys, etc
+
 
 
 # TODOS
@@ -452,16 +492,3 @@ Eve 🦹‍♀️ has no incentive to delegate rights other than to hide from de
 * [ ] Requestor specify purpose of request
 * [ ] Add subsection about session key to intro
 * [ ] Case insensitivity worth it?
-
-
-
-
-TODO address the following directly
-From Cloudflare article on mTLS: https://www.cloudflare.com/learning/access-management/what-is-mutual-tls/
-
-    On-path attacks: On-path attackers place themselves between a client and a server and intercept or modify communications between the two. When mTLS is used, on-path attackers cannot authenticate to either the client or the server, making this attack almost impossible to carry out.
-    Spoofing attacks: Attackers can attempt to "spoof" (imitate) a web server to a user, or vice versa. Spoofing attacks are far more difficult when both sides have to authenticate with TLS certificates.
-    Credential stuffing: Attackers use leaked sets of credentials from a data breach to try to log in as a legitimate user. Without a legitimately issued TLS certificate, credential stuffing attacks cannot be successful against organizations that use mTLS.
-    Brute force attacks: Typically carried out with bots, a brute force attack is when an attacker uses rapid trial and error to guess a user's password. mTLS ensures that a password is not enough to gain access to an organization's network. (Rate limiting is another way to deal with this type of bot attack.)
-    Phishing attacks: The goal of a phishing attack is often to steal user credentials, then use those credentials to compromise a network or an application. Even if a user falls for such an attack, the attacker still needs a TLS certificate and a corresponding private key in order to use those credentials.
-    Malicious API requests: When used for API security, mTLS ensures that API requests come from legitimate, authenticated users only. This stops attackers from sending malicious API requests that aim to exploit a vulnerability or subvert the way the API is supposed to function.
