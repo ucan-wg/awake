@@ -279,7 +279,7 @@ The UCAN's facts (`fct`) field MUST also include the next Responder ECDH public 
   "fct": [
     ...,
     { 
-      "awake/nextpk": step4EcdhAsDid
+      "awake/nextpk": base64Padded(step4EcdhPk)
     },
     ...
   ]
