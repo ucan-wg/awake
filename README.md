@@ -171,7 +171,7 @@ The Requestor MAY also include validation criterea expected from the Responder. 
       "can": "crud/update"
     },
     {
-      "with": "as:did:key:z6MkiTBz1ymuepAQ4HEHYSF1H8quG5GLVVQR3djdX3mDooWp:*",
+      "with": "owned://did:key:z6MkiTBz1ymuepAQ4HEHYSF1H8quG5GLVVQR3djdX3mDooWp/*",
       "can": "*"
     }
   ]
