@@ -11,7 +11,7 @@
 
 # 0. Abstract
 
-Authorized Wire Authenticated Key Exchange (AWAKE) is an [AKE](https://en.wikipedia.org/wiki/Authenticated_Key_Exchange) built on top of the [UCAN auth token](https://github.com/ucan-wg/spec). AWAKE is similar to other mutual authentication schemes (such as self-signed [mTLS](https://datatracker.ietf.org/doc/html/rfc8705)), but with a focus on authorization and proof. AWAKE leverages the UCAN capability chain to prove access to some resource, validating that the requestor is communicating with a party capable of performing certain actions. This is a helpful root of trust with a well defined context when establishing a secure communications channel.
+Authorized Wire Authenticated Key Exchange (AWAKE) is an [AKE](https://en.wikipedia.org/wiki/Authenticated_Key_Exchange) built on top of the [UCAN auth token](https://github.com/ucan-wg/spec). AWAKE is similar to other [mutual authentication](https://en.wikipedia.org/wiki/Mutual_authentication) schemes (such as self-signed [mTLS](https://datatracker.ietf.org/doc/html/rfc8705)), but with a focus on authorization and proof. AWAKE leverages the UCAN capability chain to prove access to some resource, validating that the requestor is communicating with a party capable of performing certain actions. This is a helpful root of trust with a well defined context when establishing a secure communications channel.
 
 ## Language
 
@@ -25,7 +25,9 @@ Capability-based systems have a helpful philosophy towards a third path. By emph
 
 ## 1.1 Payload Fields
 
-Payloads are encoding agnostic, but JSON is RECOMMENDED. Messages that a peer cannot parse SHOULD be ignored.
+Payloads are encoding agnostic, but JSON is RECOMMENDED. For JSON, any fields that contain non-JSON values (such as ECDH public keys and encryption payloads) MUST be serialized as unpadded [Base64](https://datatracker.ietf.org/doc/html/rfc4648).
+
+Messages that a peer cannot parse SHOULD be ignored.
 
 All payloads MUST include the "AWAKE version" field `awv: "0.1.0"`. Payloads MUST also include a message type field `type` (see each stage for the value). All field keys and message type values MUST be case-insensitive.
 
@@ -60,7 +62,7 @@ AWAKE's message-level encryption uses an [ECDH](https://en.wikipedia.org/wiki/El
 
 ### 1.3.2 Symmetric Keys
 
-All symmetric in AWAKE MUST use [256-bit AES-GCM](https://csrc.nist.gov/publications/detail/sp/800-38d/final). This MUST be derived from the [Double Ratchet](https://developer.mozilla.org/en-US/docs/Web/API/SubtleCrypto/deriveKey), and SHOULD be non-extractable where possible (e.g. via the [WebCrypto API](https://developer.mozilla.org/en-US/docs/Web/API/SubtleCrypto/generateKey)).
+All symmetric encryption in AWAKE MUST use [256-bit AES-GCM](https://csrc.nist.gov/publications/detail/sp/800-38d/final). These keys MUST be derived from the [Double Ratchet](https://developer.mozilla.org/en-US/docs/Web/API/SubtleCrypto/deriveKey), and SHOULD be non-extractable where possible (e.g. via the [WebCrypto API](https://developer.mozilla.org/en-US/docs/Web/API/SubtleCrypto/generateKey)).
 
 Each encrypted payload MUST include a unique (freshly generated) 12-byte [initialization vector](https://en.wikipedia.org/wiki/Initialization_vector).
 
@@ -85,8 +87,8 @@ AWAKE proceeds in one connection step, four communication rounds, and an OPTIONA
 ```
 Attacker                 Requestor                  Responder
    │                         │                          │      ─┐
-   │        Temp DID  &      │        Temp DID &        │ (2a)  │
-   │       Auth Criterea     │      Auth Criterea       │ (2b)  │
+   │       Temp ECDH DID     │      Temp ECDH DID       │ (2a)  │
+   │      & Auth Criterea    │     & Auth Criterea      │ (2b)  │
    │◄────────────────────────┼─────────────────────────►│       │
    │                         │                          │       │
    │                         │       Authorization      │ (3a)  │
@@ -101,12 +103,12 @@ Attacker                 Requestor                  Responder
    │                         │           ACK            │ (5)   │
    │                         │◄─────────────────────────┤       │
    │                         │                          │      ─┘
-   :                         :                          :      ─┐
+   ϟ                         ϟ                          ϟ      ─┐
    │                         │                          │       │
    │                         │         Messages         │ (6)   ├─ Session
    │                         │◄────────────────────────►│       │
    │                         │                          │       │ 
-   :                         :                          :      ─┘
+   ϟ                         ϟ                          ϟ      ─┘
    │                         │                          │      ─┐
    │                         │           FIN            │ (7)   │
    │                         │◄────────────────────────►│       ├─ Disconnection
@@ -118,11 +120,11 @@ Attacker                 Requestor                  Responder
 
 ## 3.1 Subscribe to Common Channel
 
-AWAKE begins by all parties listening on a common channel. The channel itself is unimportant: it MAY be public, broadcast to all listeners, MAY be asynchronous, and MAY be over any transport. To reduce channel noise, it is RECOMMENDED that this channel be scoped to a specific topic.
+AWAKE begins by all parties listening on a common channel. The channel itself is unimportant: it MAY be broadcast to all listeners, MAY be asynchronous, and MAY be over any transport. To reduce channel noise, it is RECOMMENDED that this channel be scoped to a specific topic.
 
 For instance, a websocket pubsub channel on the topic `awake:did:key:zStEZpzSMtTt9k2vszgvCwF4fLQQSyA15W5AQ4z3AR6Bx4eFJ5crJFbuGxKmbma4` MAY be used for messages about resources owned by `did:key:zStEZpzSMtTt9k2vszgvCwF4fLQQSyA15W5AQ4z3AR6Bx4eFJ5crJFbuGxKmbma4`.
 
-The AWAKE handshake MUST occur on a single channel. After the secure session is established, the substrate channel MAY be changed.
+The AWAKE handshake MUST occur on a single channel. The underlying channel MAY be changed after the handshake is complete.
 
 ## 3.2 Requestor Broadcasts Intent
 
@@ -131,8 +133,8 @@ The AWAKE handshake MUST occur on a single channel. After the secure session is 
 ```
 Attacker                 Requestor                  Responder
    │                         │                          │ 
-   │        Temp DID &       │        Temp DID &        │ (1a)
-   │       Auth Criterea     │      Auth Criterea       │ (1b)
+   │      Temp ECDH DID      │     Temp ECDH DID        │ (1a)
+   │     & Auth Criterea     │    & Auth Criterea       │ (1b)
    │◄────────────────────────┼─────────────────────────►│
    ⋮                         ⋮                          ⋮
 ```
@@ -141,13 +143,11 @@ In this step, the Requestor broadcasts a temporary DID, and some criterea that a
 
 The payload stage MUST be signalled by the message type `"awake/init"`.
 
-### 3.2.1 Temporary DID
+### 3.2.1 Temporary ECDH DID
 
-Since this message is sent entirely in the clear, the Requestor MUST generate a fresh P-256 key pair per AWAKE initialization attempt. This key MUST be used as the first step in the ECDH Double Ratchet.
+Since this message is sent entirely in the clear, the Requestor MUST generate a fresh P-256 key pair per AWAKE initialization attempt. This key MUST be used as the first step in the ECDH Double Ratchet. In the payload, the public key MUST be formatted as a [did:key](https://w3c-ccg.github.io/did-method-key/#p-256).
 
-This key pair MUST be referenced as a [`did:key`](https://w3c-ccg.github.io/did-method-key/) in the payload.
-
-This "temporary DID", and MUST only be used for key exchange. This RSA key pair MUST NOT be used for signatures, and MUST NOT be persisted past this one session boostrap (i.e. discard after [Step 3](#33-responder-establishes-point-to-point-session)). It is RECOMMENDED that the private key be non-extractable when possible, such as via the [WebCrypto API](https://developer.mozilla.org/en-US/docs/Web/API/SubtleCrypto/generateKey).
+This temporary key MUST only be used for key exchange, and MUST NOT be used for signatures, and MUST NOT be persisted past this one session boostrap (i.e. discard after [Step 3](#33-responder-establishes-point-to-point-session)). It is RECOMMENDED that the private key be non-extractable when possible, such as via the [WebCrypto API](https://developer.mozilla.org/en-US/docs/Web/API/SubtleCrypto/generateKey).
     
 ### 3.2.2 Authorization Criterea
 
@@ -155,12 +155,12 @@ The Requestor MAY also include validation criterea expected from the Responder. 
 
 ### 3.2.3 Payload
 
-| Field   | Value          | Description                                    | Required |
-| ------- | -------------- | ---------------------------------------------- | -------- |
-| `awv`   | `"0.1.0"`      | AWAKE message version                          | Yes      |
-| `type`  | `"awake/init"` | Signal which step of AWAKE this payload is for | Yes      |
-| `iss`   |                | The Requestor's initial (temp) ECDH P-256 DID  | Yes      |
-| `caps`  |                | Capabilities that the Responder MUST provide   | Yes      |
+| Field  | Value          | Description                                    | Required |
+| ------ | -------------- | ---------------------------------------------- | -------- |
+| `awv`  | `"0.1.0"`      | AWAKE message version                          | Yes      |
+| `type` | `"awake/init"` | Signal which step of AWAKE this payload is for | Yes      |
+| `did`  |                | The Requestor's initial (temp) ECDH P-256      | Yes      |
+| `caps` |                | Capabilities that the Responder MUST provide   | Yes      |
 
 #### 3.2.3.1 JSON Example
 
@@ -168,7 +168,7 @@ The Requestor MAY also include validation criterea expected from the Responder. 
 {
   "awv": "0.1.0",
   "type": "awake/init",
-  "iss": "did:key:zDnaerx9CtbPJ1q36T5Ln5wYt3MQYeGRG5ehnPAmxcf5mDZpv",
+  "did": "did:key:zDnaerx9CtbPJ1q36T5Ln5wYt3MQYeGRG5ehnPAmxcf5mDZpv",
   "caps": [
     {
       "with": "mailto:me@example.com",
@@ -188,7 +188,7 @@ The Requestor MAY also include validation criterea expected from the Responder. 
 
 ## 3.3 Responder Establishes Point-to-Point Session
 
-**NOTE: The Responder is not yet trusted at this step, and MUST be treated as a possible impersonator or PITM**
+**NOTE: The Responder is not yet trusted at this step, and MUST be treated as a possible impersonator or [PITM](https://en.wikipedia.org/wiki/Man-in-the-middle_attack)**
 
 ```
 Requestor                  Responder
@@ -279,15 +279,16 @@ If more than one `awake/challenge` field is set, the lowest-indexed one MUST be 
 
 #### 3.3.1.2 Next Responder ECDH
 
-The UCAN's facts (`fct`) field MUST also include the next Responder ECDH public key (to be used in Step 4) encoded as `did:key`.
+The UCAN's facts (`fct`) field MUST also include the next Responder ECDH public key (to be used in Step 4) encoded as `did:key`. Having the next key in the UCAN places it inside the signature envelope, associating the next key with the Responder's UCAN DID.
 
 ``` javascript
+//JSON encoded
 {
   ...,
   "fct": [
     ...,
     { 
-      "awake/nextpk": base64Padded(step4EcdhPk)
+      "awake/nextpk": base64(step4EcdhPk)
     },
     ...
   ]
@@ -300,14 +301,14 @@ If more than one `awake/nextpk` field is set, the lowest-indexed one MUST be use
 
 To start the Double Ratchet, the payload in this stage has the highest number of cleartext fields. Note that the value in the `res` field contain the temporary ECDH DIDs, and MUST NOT use the Responder's actual long-term DID. Conversely, the UCAN inside the encrypted payload MUST use the Responder's long-term DID.
 
-| Field  | Value         | Description                                                                      | Required |
-| ------ | ------------- | -------------------------------------------------------------------------------- | -------- |
-| `awv`  | `"0.1.0"`     | AWAKE message version                                                            | Yes      |
-| `type` | `"awake/res"` | "Responder's Auth" step message type                                             | Yes      |
-| `iss`  |               | Responder's ECDH P-256 DID                                                       | Yes      |
-| `aud`  |               | The ECDH P-256 DID signalled by the Requestor in Step 2                          | Yes      |
-| `iv`   |               | Initialization vector for the encrypted `auth` payload, encoded as base64-padded | Yes      |
-| `msg`  |               | AES-GCM-encrypted validation UCAN, encoded as base64-padded                      | Yes      |
+| Field  | Value         | Description                                             | Required |
+| ------ | ------------- | ------------------------------------------------------- | -------- |
+| `awv`  | `"0.1.0"`     | AWAKE message version                                   | Yes      |
+| `type` | `"awake/res"` | "Responder's Auth" step message type                    | Yes      |
+| `iss`  |               | Responder's ECDH P-256 DID                              | Yes      |
+| `aud`  |               | The ECDH P-256 DID signalled by the Requestor in Step 2 | Yes      | FIXME add step 2 link
+| `iv`   |               | Initialization vector for the encrypted `auth` payload  | Yes      |
+| `msg`  |               | AES-GCM-encrypted validation UCAN                       | Yes      |
 
 #### 3.3.3.1 JSON Example
 
@@ -337,7 +338,7 @@ Requestor                  Responder
 
 At this stage, the Responder has been validated, but the Requestor is still untrusted. The Requestor now MUST provide their actual DID over the secure channel, and MUST prove that they are a trusted party rather than a PITM, evesdropper, or phisher. This is accomplished in a single message.
 
-The Requestor MUST provide the proof of authorization set by the Responder payload in [§3.3.2](https://github.com/ucan-wg/awake/blob/port/README.md#332-validation-ucan). The RECOMMENDED authorization methods are PIN validation (`pin`) and UCAN (`ucan`). Note that if the Requestor does not know how to respond to fulfill an authorization method, the AWAKE connection MUST fail with a `type: "awake/error/unknownauthtype"` FIXME define message type, put in encrypted payload, also need a badpayload type in general
+The Requestor MUST provide the proof of authorization set by the Responder payload in [§3.3.2](https://github.com/ucan-wg/awake/blob/port/README.md#332-validation-ucan). The RECOMMENDED authorization methods are PIN validation (`pin`) and UCAN (`ucan`). Note that if the Requestor does not know how to respond to fulfill an authorization method, the AWAKE connection MUST fail with `type: "awake/error/unknown-challenge"` (see error section for encdoing) FIXME
 
 ### 3.4.1 Payload
 
@@ -365,12 +366,12 @@ The AES key for this payload MUST be derived from the Requestor's initial ECDH p
 
 Out-of-band PIN challenges are most useful when the Requestor would not be able to provide UCAN validation, such as when signing into a new device that has not been delegated to yet. The PIN MUST be set by the Responder, and transmitted out of band. Some examples of out of band transmission include displaying text on screen, email, text message, or QR code.
 
-The PIN values MUST be within the UTF-8 character set. The PIN MUST be encoded as base64-padded in the `pin` field. It is RECOMMENDED that the PIN be restricted to human-readable characters, and 4 to 10 characters long. If a very long challenge is required, it is RECOMMENDED that the SHA3 hash of the challenge be used rather than putting a large challenge over the wire.
+The PIN values MUST be within the UTF-8 character set. The PIN MUST be included in the `pin` field. It is RECOMMENDED that the PIN be restricted to human-readable characters, and 4 to 10 characters long. If a very long challenge is required, it is RECOMMENDED that the SHA3 hash of the challenge be used rather than putting a large challenge over the wire.
 
-| Field  | Value                                                                    | Description                               | Required |
-| ------ | ------------------------------------------------------------------------ | ----------------------------------------- | -------- |
-| `did`  |                                                                          | "Actual" Requestor DID                    | Yes      |
-| `sig`  | `base64Padded(sign(requestorPK, sha3_256(responderDid + outOfBandPin)))` | Base64-padded signature of challenge hash | Yes      |
+| Field  | Value                                                      | Description                 | Required |
+| ------ | ---------------------------------------------------------- | --------------------------- | -------- |
+| `did`  |                                                            | "Actual" Requestor DID      | Yes      |
+| `sig`  | `sign(requestorPK, sha3_256(responderDid + outOfBandPin))` | Signature of challenge hash | Yes      |
 
 ```javascript
 {
@@ -381,7 +382,7 @@ The PIN values MUST be within the UTF-8 character set. The PIN MUST be encoded a
 
 #### 3.4.2.3 Direct UCAN Challenge
 
-If UCAN auth is required by the Responder, the Requestor MUST provide a UCAN. This is the same strategy as the one used by the Responder in s3.3 (FIXME): the UCAN MUST be encrypted with the session key and the IV from the encosing payload, MUST be given in a raw format (not further base64 encoded), and MUST be inline (without a JSON object wrapper or similar). The encrypted value MUST be encoded as base64-padded.
+If UCAN auth is required by the Responder, the Requestor MUST provide a UCAN. This is the same strategy as the one used by the Responder in s3.3 (FIXME): the UCAN MUST be encrypted with the session key and the IV from the encosing payload, MUST be given in a raw format, and MUST be inline (without a JSON object wrapper or similar).
 
 The UCAN MUST be issued (`iss`) by the Requestor's DID (not the temporary DID), and its audience (`aud`) MUST be the Responder's DID. The `att` field MUST be set to an empty array (i.e. it MUST NOT delegate any capabilities). The `prf` array MUST fulfill the capabilities set by the Responder.
 
@@ -437,7 +438,7 @@ The encrypted message payload MUST include an `awake/ack` field, with a value of
 }
 ```
 
-## 3.6 Continuation
+## 4 Secure Session
 
 Messages sent over an established AWAKE session MUST contain the following keys:
  
@@ -451,20 +452,25 @@ Messages sent over an established AWAKE session MUST contain the following keys:
 
 Additional cleartext keys MAY be used, but are NOT RECOMMENDED since they can leak information about your session or the payload. Encrypted payloads MAY be padded with random noise or broken across multiple messages to prevent certain kinds of metadata leakage.
 
-### 3.6.1 Encrypted Field Keys
+### 4.1 Encrypted Field Keys
 
-Every encrypted payload MUST inlcude a `awake/nextpk` field, updating the public key of the sender for the next message(s). This continues the Double Ratchet and updates the AES key that will be used for successive messages.
+Every encrypted payload (`msg`) MUST inlcude a `awake/nextpk` field, updating the public key of the sender for the next message(s). This continues the Double Ratchet and updates the AES key that will be used for successive messages.
 
 Additional fields MAY be included to contain futher payload.
 
 ``` javascript
+// JSON encoded
 {
   ...,
-  "awake/nextpk": base64Padded(sendersNextEcdhPk)
+  "awake/nextpk": base64(sendersNextEcdhPk)
 }
 ```
 
-## 3.7 Disconnection
+## 4.2 Double Ratchet
+
+Each message of the secure session MUST continue the ECDH Double Ratchet, and be encrypted with the resulting 256-bit AES key in Galois/Counter Mode (GCM).
+
+## 5 Disconnection
 
 Graceful disconnection from an AWAKE attempt can be broadcast at any step with the following payload:
  
@@ -478,23 +484,51 @@ Graceful disconnection from an AWAKE attempt can be broadcast at any step with t
 
 This message MAY be broadcast at any time duing an AWAKE session, including to cancel the AWAKE handshake attempt. This payload SHOULD NOT contain any other keys.
 
-### 3.7.1 Encrypted Field Keys
+### 5.1 Encrypted Field Keys
+
+The disconnection message MUST include an `awake/fin` key with `disconnect` for its value. It MAY include additional fields.
+
+| Field       | Value        | Description             | Required |
+| ----------- | ------------ | ----------------------- | -------- |
+| `awake/fin` | `disconnect` | Disconnection directive | Yes      |
 
 ``` javascript
+// JSON encoded
 {
+  ...,
   "awake/fin": "disconnect"
 }
 ```
 
-# 4 Security
+# 6 Security
 
 Key flooding, GCing old keys, etc
 
 
 
-# 5 Prior Art
+# 7 Prior Art
 
-# 6 Acknowledgements
+* mTLS
+
+
+
+
+Mutual authentication supports zero trust networking because it can protect communications against adversarial attacks,[8] notably:
+
+Man-in-the-middle attack
+    Man-in-the-middle (MITM) attacks are when a third party wishes to eavesdrop or intercept a message, and sometimes alter the intended message for the recipient. The two parties openly receive messages without verifying the sender, so they do not realize an adversary has inserted themselves into the communication line. Mutual authentication can prevent MITM attacks because both the sender and recipient verify each other before sending them their message keys, so if one of the parties is not verified to be who they claim they are, the session will end.[9]
+Replay attack
+    A replay attack is similar to a MITM attack in which older messages are replayed out of context to fool the server. However, this does not work against schemes using mutual authentication[10] because timestamps are a verification factor that are used in the protocols.[11][12] If the change in time is greater than the maximum allowed time delay, the session will be aborted.[12] Similarly, messages can include a randomly generated number to keep track of when a message was sent.[11]
+Spoofing attack
+    Spoofing attacks rely on using false data to pose as another user in order to gain access to a server or be identified as someone else. Mutual authentication can prevent spoofing attacks because the server will authenticate the user as well, and verify that they have the correct session key before allowing any further communication and access.[12]
+Impersonation attacks
+    When each party authenticates the other, they send each other a certificate that only the other party knows how to unscramble, verifying themselves as a trusted source. In this way, adversaries cannot use impersonation attacks because they do not have the correct certificate to act as if they are the other party.[6]
+
+Mutual authentication also ensures information integrity because if the parties are verified to be the correct source, then the information received is reliable as well.[6] 
+
+
+
+# 8 Acknowledgements
 
 # TODOS
 
