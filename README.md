@@ -147,12 +147,12 @@ The Requestor MAY also include validation criterea expected from the Responder. 
 
 ### 3.2.3 Payload
 
-| Field   | Value          | Description                                          | Required |
-| ------- | -------------- | ---------------------------------------------------- | -------- |
-| `awv`   | `"0.1.0"`      | AWAKE message version                                | Yes      |
-| `type`  | `"awake/init"` | Signal which step of AWAKE this payload is for       | Yes      |
-| `did`   |                | The DID of the Requestor this is intended for        | Yes      |
-| `caps`  |                | Capabilities that the Responder MUST provide         | Yes      |
+| Field   | Value          | Description                                    | Required |
+| ------- | -------------- | ---------------------------------------------- | -------- |
+| `awv`   | `"0.1.0"`      | AWAKE message version                          | Yes      |
+| `type`  | `"awake/init"` | Signal which step of AWAKE this payload is for | Yes      |
+| `iss`   |                | The Requestor's initial (temp) ECDH P-256 DID  | Yes      |
+| `caps`  |                | Capabilities that the Responder MUST provide   | Yes      |
 
 #### 3.2.3.1 JSON Example
 
@@ -160,7 +160,7 @@ The Requestor MAY also include validation criterea expected from the Responder. 
 {
   "awv": "0.1.0",
   "type": "awake/init",
-  "did": "did:key:zDnaerx9CtbPJ1q36T5Ln5wYt3MQYeGRG5ehnPAmxcf5mDZpv",
+  "iss": "did:key:zDnaerx9CtbPJ1q36T5Ln5wYt3MQYeGRG5ehnPAmxcf5mDZpv",
   "caps": [
     {
       "with": "mailto:me@example.com",
@@ -296,8 +296,8 @@ To start the Double Ratchet, the payload in this stage has the highest number of
 | ------ | ------------- | -------------------------------------------------------------------------------- | -------- |
 | `awv`  | `"0.1.0"`     | AWAKE message version                                                            | Yes      |
 | `type` | `"awake/res"` | "Responder's Auth" step message type                                             | Yes      |
-| `res`  |               | Responder's ECDH P-256 DID                                                       | Yes      |
-| `req`  |               | The ECDH P-256 DID signalled by the Requestor in Step 2                          | Yes      |
+| `iss`  |               | Responder's ECDH P-256 DID                                                       | Yes      |
+| `aud`  |               | The ECDH P-256 DID signalled by the Requestor in Step 2                          | Yes      |
 | `iv`   |               | Initialization vector for the encrypted `auth` payload, encoded as base64-padded | Yes      |
 | `msg`  |               | AES-GCM-encrypted validation UCAN, encoded as base64-padded                      | Yes      |
 
@@ -307,8 +307,8 @@ To start the Double Ratchet, the payload in this stage has the highest number of
 {
   "awv": "0.1.0",
   "type": "awake/res",
-  "iss": responderStep3EcdhDid,
-  "aud": requestorStep2EcdhDid,
+  "iss": responderStep3EcdhPk,
+  "aud": requestorStep2EcdhPk,
   "iv": iv,
   "msg": encryptedUcan 
 }
@@ -335,19 +335,19 @@ The Requestor MUST provide the proof of authorization set by the Responder paylo
 
 The AES key for this payload MUST be derived from the Requestor's initial ECDH private key and the Repsonder's ECDH public key set in the UCAN in Step 3 (FIXME)
 
-| Field  | Value                                         | Description                                                    | Required |
-| ------ | --------------------------------------------- | -------------------------------------------------------------- | -------- |
-| `awv`  | `"0.1.0"`                                     | AWAKE message version                                          | Yes      |
-| `type` | `"awake/msg"`                                 | Generic AWAKE message type                                     | Yes      |
-| `id`   | `sha3_256(reqStep2EcdhDid + ResStep3EcdhDid)` | Message ID                                                     | Yes      |
-| `iv`   |                                               | Initialization vector for the encrypted payload                | Yes      |
-| `msg`  |                                               | Fulfilled challenge payload encrypted with Step 4 ECDH AES-key | Yes      |
+| Field  | Value                                       | Description                                                    | Required |
+| ------ | ------------------------------------------- | -------------------------------------------------------------- | -------- |
+| `awv`  | `"0.1.0"`                                   | AWAKE message version                                          | Yes      |
+| `type` | `"awake/msg"`                               | Generic AWAKE message type                                     | Yes      |
+| `id`   | `sha3_256(reqStep2EcdhPk + ResStep3EcdhPk)` | Message ID                                                     | Yes      |
+| `iv`   |                                             | Initialization vector for the encrypted payload                | Yes      |
+| `msg`  |                                             | Fulfilled challenge payload encrypted with Step 4 ECDH AES-key | Yes      |
 
 ``` javascript
 {
   "awv": "0.1.0",
   "type": "awake/msg",
-  "id": sha3_256(reqStep2EcdhDid + ResStep3EcdhDid),
+  "id": sha3_256(reqStep2EcdhPk + ResStep3EcdhPk),
   "iv": iv,
   "msg": encryptedChallenge
 }
