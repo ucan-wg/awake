@@ -299,7 +299,7 @@ To start the Double Ratchet, the payload in this stage has the highest number of
 | `res`  |               | Responder's ECDH P-256 DID                                                       | Yes      |
 | `req`  |               | The ECDH P-256 DID signalled by the Requestor in Step 2                          | Yes      |
 | `iv`   |               | Initialization vector for the encrypted `auth` payload, encoded as base64-padded | Yes      |
-| `auth` |               | AES-GCM-encrypted validation UCAN, encoded as base64-padded                      | Yes      |
+| `msg`  |               | AES-GCM-encrypted validation UCAN, encoded as base64-padded                      | Yes      |
 
 #### 3.3.3.1 JSON Example
 
@@ -310,7 +310,7 @@ To start the Double Ratchet, the payload in this stage has the highest number of
   "iss": responderStep3EcdhDid,
   "aud": requestorStep2EcdhDid,
   "iv": iv,
-  "auth": encryptedUcan 
+  "msg": encryptedUcan 
 }
 ```
 
@@ -329,7 +329,7 @@ Requestor                  Responder
 
 At this stage, the Responder has been validated, but the Requestor is still untrusted. The Requestor now MUST provide their actual DID over the secure channel, and MUST prove that they are a trusted party rather than a PITM, evesdropper, or phisher. This is accomplished in a single message.
 
-The Requestor MUST provide the proof of authorization set by the Responder payload in [§3.3.2](https://github.com/ucan-wg/awake/blob/port/README.md#332-validation-ucan). The RECOMMENDED authorization methods are PIN validation (`pin`) and UCAN (`ucan`). Note that if the Requestor does not know how to respond to fulfill an authorization method, the AWAKE connection MUST fail with a `type: "awake/error/unknownauthtype"` FIXME define message type
+The Requestor MUST provide the proof of authorization set by the Responder payload in [§3.3.2](https://github.com/ucan-wg/awake/blob/port/README.md#332-validation-ucan). The RECOMMENDED authorization methods are PIN validation (`pin`) and UCAN (`ucan`). Note that if the Requestor does not know how to respond to fulfill an authorization method, the AWAKE connection MUST fail with a `type: "awake/error/unknownauthtype"` FIXME define message type, put in encrypted payload, also need a badpayload type in general
 
 ### 3.4.1 Payload
 
