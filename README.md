@@ -101,21 +101,20 @@ Attacker                 Requestor                  Responder
    │                         │           ACK            │ (5)   │
    │                         │◄─────────────────────────┤       │
    │                         │                          │      ─┘
-   ⋮                         ⋮                          ⋮
+   ┊                         ┊                          ┊
    │                         │                          │      ─┐
-   │                         │                          │       │
-   │                         │         Messages         │ (6)   ├─ Session
-   │                         │◄────────────────────────►│       │
-   │                         │                          │       │
-   │                         │                          │      ─┘ 
-   ⋮                         ⋮                          ⋮
+   │                         │         Messages         │ (6)   │
+   │                         │◄────────────────────────►│       ├─ Session
+   │                         │                          │       │ 
+   ┊                         ┊                          ┊      ─┘
    │                         │                          │      ─┐
-   │                         │           FIN            │ (7)   ├─ Disconnection
-   │                         │◄────────────────────────►│       │
-   │                         │                          │      ─┘
+   │                         │           FIN            │ (7)   │
+   │                         │◄────────────────────────►│       ├─ Disconnection
+   │                         │                          │       │
+   ▀                         ▀                          ▀      ─┘
 ```
     
-# 3. Detailed Stages
+# 3. Handshake
 
 ## 3.1 Subscribe to Common Channel
 
@@ -477,7 +476,7 @@ Graceful disconnection from an AWAKE attempt can be broadcast at any step with t
 | `iv`   |                                               | Initialization vector for the encrypted payload                | Yes      |
 | `msg`  |                                               | Fulfilled challenge payload encrypted with latest ECDH AES-key | Yes      |
 
-This message MAY be broadcast at any time duing an AWAKE session, including to cancel the AWAKE bootstrap attempt. This payload SHOULD NOT contain any other keys.
+This message MAY be broadcast at any time duing an AWAKE session, including to cancel the AWAKE handshake attempt. This payload SHOULD NOT contain any other keys.
 
 ### 3.7.1 Encrypted Field Keys
 
