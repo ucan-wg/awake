@@ -25,7 +25,7 @@ Capability-based systems have a helpful philosophy towards a third path. By emph
 
 ## 1.1 Payload Fields
 
-Payloads are encoding agnostic, but JSON is RECOMMENDED.
+Payloads are encoding agnostic, but JSON is RECOMMENDED. Messages that a peer cannot parse SHOULD be ignored.
 
 All payloads MUST include the "AWAKE version" field `awv: "0.1.0"`. Payloads MUST also include a message type field `type` (see each stage for the value). All field keys and message type values MUST be case-insensitive.
 
@@ -44,9 +44,9 @@ All payloads MUST include the "AWAKE version" field `awv: "0.1.0"`. Payloads MUS
 
 ## 1.3 Encryption
 
-Encryption is core to securing a secure tunnel on a public channel. Key material and secrets created for AWAKE MUST be considered ephemeral and MUST NOT be reused between sessions.
+Encryption is core to securing a tunnel. Key material and secrets created for AWAKE MUST be considered ephemeral and MUST NOT be reused between sessions.
 
-At a high-level, AWAKE uses a NIST P-256 [Elliptic Curve Diffie-Hellman](https://en.wikipedia.org/wiki/Elliptic-curve_Diffie%E2%80%93Hellman) (ECDH) [Double Ratchet](https://signal.org/docs/specifications/doubleratchet/)
+At a high-level, AWAKE uses a NIST P-256 [Elliptic Curve Diffie-Hellman](https://en.wikipedia.org/wiki/Elliptic-curve_Diffie%E2%80%93Hellman) (ECDH) [Double Ratchet](https://signal.org/docs/specifications/doubleratchet/) to secure messages.
 
 ### 1.3.1 Asymmetric Keys
 
@@ -79,42 +79,49 @@ AWAKE proceeds in one connection step, four communication rounds, and an OPTIONA
     * a. Requestor sends actual DID
     * b. Requestor sends instance validation (e.g. UCAN or out-of-band PIN)
 5. Responder sends an `ACK`
-6. Either party disconnects
+6. Secure session messages (zero or more rounds)
+7. Either party disconnects
 
 ```
 Attacker                 Requestor                  Responder
-   │                         │                          │ 
-   │        Temp DID  &      │        Temp DID &        │ (2a)
-   │       Auth Criterea     │      Auth Criterea       │ (2b)
-   │◄────────────────────────┼─────────────────────────►│
-   │                         │                          │
-   │                         │       Authorization      │ (3a)
-   │                         │       & Session Key      │ (3b)
-   │                         │◄─────────────────────────┤
-   │                         │                          │
-   │                         │        Actual DID        │ (4a)
-   │                         │        & Challenge       │ (4b)
-   │                         ├─────────────────────────►│
-   │                         │                          │
-   │                         │                          │
-   │                         │           ACK            │ (5)
-   │                         │◄─────────────────────────┤
-   │                         │                          │
-   ⋮                         ⋮                          ⋮
-   │                         │                          │
-   │                         │           FIN            │ (6)
-   │                         │◄────────────────────────►│
+   │                         │                          │      ─┐
+   │        Temp DID  &      │        Temp DID &        │ (2a)  │
+   │       Auth Criterea     │      Auth Criterea       │ (2b)  │
+   │◄────────────────────────┼─────────────────────────►│       │
+   │                         │                          │       │
+   │                         │       Authorization      │ (3a)  │
+   │                         │       & Session Key      │ (3b)  │
+   │                         │◄─────────────────────────┤       │
+   │                         │                          │       ├─ Handshake
+   │                         │        Actual DID        │ (4a)  │
+   │                         │        & Challenge       │ (4b)  │
+   │                         ├─────────────────────────►│       │
+   │                         │                          │       │
+   │                         │                          │       │
+   │                         │           ACK            │ (5)   │
+   │                         │◄─────────────────────────┤       │
+   │                         │                          │      ─┘
+   ⋮                         ⋮                          ⋮      ─┐
+   │                         │                          │       │
+   │                         │         Messages         │ (6)   ├─ Session
+   │                         │◄────────────────────────►│       │
+   │                         │                          │       │
+   ⋮                         ⋮                          ⋮      ─┘
+   │                         │                          │      ─┐
+   │                         │           FIN            │ (7)   ├─ Disconnection
+   │                         │◄────────────────────────►│       │
+   │                         │                          │      ─┘
 ```
     
 # 3. Detailed Stages
 
 ## 3.1 Subscribe to Common Channel
 
-AWAKE begins by all parties listening on a common channel. The channel itself is unimportant: it MAY be public, broadcast to all listeners, be assynchronous, and over any transport. To reduce channel noise, it is RECOMMENDED that this channel be specific to some topic.
+AWAKE begins by all parties listening on a common channel. The channel itself is unimportant: it MAY be public, broadcast to all listeners, MAY be asynchronous, and MAY be over any transport. To reduce channel noise, it is RECOMMENDED that this channel be scoped to a specific topic.
 
-For instance, a websocket channel on the topic `awake:did:key:zStEZpzSMtTt9k2vszgvCwF4fLQQSyA15W5AQ4z3AR6Bx4eFJ5crJFbuGxKmbma4` MAY be used for messages about resources owned by `did:key:zStEZpzSMtTt9k2vszgvCwF4fLQQSyA15W5AQ4z3AR6Bx4eFJ5crJFbuGxKmbma4`.
+For instance, a websocket pubsub channel on the topic `awake:did:key:zStEZpzSMtTt9k2vszgvCwF4fLQQSyA15W5AQ4z3AR6Bx4eFJ5crJFbuGxKmbma4` MAY be used for messages about resources owned by `did:key:zStEZpzSMtTt9k2vszgvCwF4fLQQSyA15W5AQ4z3AR6Bx4eFJ5crJFbuGxKmbma4`.
 
-The AWAKE bootstrap MUST occur on this channel. After the secure session is established, the substrate channel MAY be changed.
+The AWAKE handshake MUST occur on a single channel. After the secure session is established, the substrate channel MAY be changed.
 
 ## 3.2 Requestor Broadcasts Intent
 
@@ -483,6 +490,10 @@ This message MAY be broadcast at any time duing an AWAKE session, including to c
 Key flooding, GCing old keys, etc
 
 
+
+# 5 Prior Art
+
+# 6 Acknowledgements
 
 # TODOS
 
