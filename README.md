@@ -19,7 +19,7 @@ The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT", "SHOULD", "S
 
 # 1 Introduction
 
-AWAKE bootstraps a secure session on top of a public channel. Key exchanges for point-to-point communication are plentiful, but in open, trusteless protocols, rooting trust can be a barrier for ad hoc communications channels. Two common approaches are to use a trusted certificate authority, or ignore the principal and "merely" establish a point-to-point channel.
+AWAKE bootstraps a secure session on top of a public channel. Key exchanges for point-to-point communication are plentiful, but in open, trustless protocols, rooting trust can be a barrier for ad hoc communications channels. Two common approaches are to use a trusted certificate authority, or ignore the principal and "merely" establish a point-to-point channel.
 
 Capability-based systems have a helpful philosophy towards a third path. By emphasizing authorization over authentication, they provide a way to know something provable about what the other party "can do", even if they have no sure way of knowing "who they are". One way of phrasing this is that such an agent is "functionally equivalent to the principal in this context". AWAKE makes use of authorization to bootstrap point-to-point sessions that are both secure and mutually trusted.
 
@@ -130,9 +130,9 @@ Attacker                 Requestor                  Responder
 
 ## 3.1 Subscribe to Common Channel
 
-AWAKE begins by all parties listening on a common channel. AWAKE itself is cghannel and transport agnostic; it MAY be broadcast to all listeners, MAY be asynchronous, and MAY be over any transport. To reduce channel noise, it is RECOMMENDED that this channel be scoped to a specific topic.
+AWAKE begins by all parties listening on a common channel. AWAKE itself is channel and transport agnostic; it MAY be broadcast to all listeners, MAY be asynchronous, and MAY be over any transport. To reduce channel noise, it is RECOMMENDED that this channel be scoped to a specific topic.
 
-For instance, a websocket pubsub channel on the topic `awake:did:key:zStEZpzSMtTt9k2vszgvCwF4fLQQSyA15W5AQ4z3AR6Bx4eFJ5crJFbuGxKmbma4` MAY be used for messages about resources owned by `did:key:zStEZpzSMtTt9k2vszgvCwF4fLQQSyA15W5AQ4z3AR6Bx4eFJ5crJFbuGxKmbma4`.
+For instance, a WebSocket pubsub channel on the topic `awake:did:key:zStEZpzSMtTt9k2vszgvCwF4fLQQSyA15W5AQ4z3AR6Bx4eFJ5crJFbuGxKmbma4` MAY be used for messages about resources owned by `did:key:zStEZpzSMtTt9k2vszgvCwF4fLQQSyA15W5AQ4z3AR6Bx4eFJ5crJFbuGxKmbma4`.
 
 The AWAKE handshake MUST occur on a single channel. The underlying channel MAY be changed after the handshake is complete.
 
@@ -157,11 +157,11 @@ The payload stage MUST be signalled by the message type `"awake/init"`.
 
 Since this message is sent entirely in the clear, the Requestor MUST generate a fresh P-256 key pair per AWAKE initialization attempt. This key MUST be used as the first step in the ECDH Double Ratchet. In the payload, the public key MUST be formatted as a [did:key](https://w3c-ccg.github.io/did-method-key/#p-256).
 
-This temporary key MUST only be used for key exchange, and MUST NOT be used for signatures, and MUST NOT be persisted past this one session boostrap (i.e. discard after [Step 3](#33-responder-establishes-point-to-point-session)). It is RECOMMENDED that the private key be non-extractable when possible, such as via the [WebCrypto API](https://developer.mozilla.org/en-US/docs/Web/API/SubtleCrypto/generateKey).
+This temporary key MUST only be used for key exchange, and MUST NOT be used for signatures, and MUST NOT be persisted past this one session bootsrap (i.e. discard after [Step 3](#33-responder-establishes-point-to-point-session)). It is RECOMMENDED that the private key be non-extractable when possible, such as via the [WebCrypto API](https://developer.mozilla.org/en-US/docs/Web/API/SubtleCrypto/generateKey).
     
 ### 3.2.2 Authorization Criteria
 
-The Requestor MAY also include validation criteria expected from the Responder. This MUST be passed as an array of [UCAN capabilities](https://github.com/ucan-wg/spec#23-capability). The Responder MUST be able to prove access to these capabilties in [§3.3](https://github.com/ucan-wg/awake/blob/port/README.md#33-responder-establishes-point-to-point-session).
+The Requestor MAY also include validation criteria expected from the Responder. This MUST be passed as an array of [UCAN capabilities](https://github.com/ucan-wg/spec#23-capability). The Responder MUST be able to prove access to these capabilities in [§3.3](https://github.com/ucan-wg/awake/blob/port/README.md#33-responder-establishes-point-to-point-session).
 
 ### 3.2.3 Payload
 
@@ -309,14 +309,14 @@ If more than one `awake/nextdid` field is set, the lowest-indexed one MUST be us
 
 To start the Double Ratchet, the payload in this stage has the highest number of cleartext fields. Note that the value in the `res` field contain the temporary ECDH DIDs, and MUST NOT use the Responder's actual long-term DID. Conversely, the UCAN inside the encrypted payload MUST use the Responder's long-term DID.
 
-| Field  | Value         | Description                                             | Required |
-| ------ | ------------- | ------------------------------------------------------- | -------- |
-| `awv`  | `"0.1.0"`     | AWAKE message version                                   | Yes      |
-| `type` | `"awake/res"` | "Responder's Auth" step message type                    | Yes      |
-| `iss`  |               | Responder's ECDH P-256 DID                              | Yes      |
-| `aud`  |               | The ECDH P-256 DID signalled by the Requestor in Step 2 | Yes      | FIXME add step 2 link
-| `iv`   |               | Initialization vector for the encrypted `auth` payload  | Yes      |
-| `msg`  |               | AES-GCM-encrypted validation UCAN                       | Yes      |
+| Field  | Value         | Description                                                                              | Required |
+| ------ | ------------- | ---------------------------------------------------------------------------------------- | -------- |
+| `awv`  | `"0.1.0"`     | AWAKE message version                                                                    | Yes      |
+| `type` | `"awake/res"` | "Responder's Auth" step message type                                                     | Yes      |
+| `iss`  |               | Responder's ECDH P-256 DID                                                               | Yes      |
+| `aud`  |               | The ECDH P-256 DID signalled by the Requestor in [§3.2](#32-requestor-broadcasts-intent) | Yes      | 
+| `iv`   |               | Initialization vector for the encrypted `auth` payload                                   | Yes      |
+| `msg`  |               | AES-GCM-encrypted validation UCAN                                                        | Yes      |
 
 #### 3.3.3.1 JSON Example
 
@@ -350,7 +350,7 @@ The Requestor MUST provide the proof of authorization set by the Responder paylo
 
 ### 3.4.1 Payload
 
-The AES key for this payload MUST be derived from the Requestor's initial ECDH private key and the Repsonder's ECDH public key set in the UCAN in Step 3 (FIXME)
+The AES key for this payload MUST be derived from the Requestor's initial ECDH private key and the Responder's ECDH public key set in the UCAN in [§3.3](#33-responder-es tablishes-point-to-point-session).
 
 | Field  | Value                                       | Description                                                    | Required |
 | ------ | ------------------------------------------- | -------------------------------------------------------------- | -------- |
