@@ -441,8 +441,7 @@ The encrypted message payload MUST include an `awake/ack` field, with a value of
 ``` javascript
 {
   ...,
-  "awake/ack": reqActualDid,
-  ...
+  "awake/ack": reqActualDid
 }
 ```
 
