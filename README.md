@@ -263,8 +263,7 @@ To set the challenge as `oob-pin`, the `fct` section of the UCAN MUST include th
   ...,
   "fct": [
     ...,
-    {"awake/challenge": "oob-pin"},
-    ...
+    {"awake/challenge": "oob-pin"}
   ]
 }
 ```
@@ -279,8 +278,7 @@ To set the challenge as `ucan`, the `fct` section of the UCAN MUST include the f
     { 
       "awake/challenge": "ucan",
       "caps": [...requiredCaps] 
-    },
-    ...
+    }
   ]
 }
 ```
@@ -297,8 +295,7 @@ The UCAN's facts (`fct`) field MUST also include the next Responder ECDH public 
   ...,
   "fct": [
     ...,
-    {"awake/nextdid": step4EcdhDid},
-    ...
+    {"awake/nextdid": step4EcdhDid}
   ]
 }
 ```
