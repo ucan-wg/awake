@@ -157,7 +157,7 @@ The payload stage MUST be signalled by the message type `"awake/init"`.
 
 Since this message is sent entirely in the clear, the Requestor MUST generate a fresh P-256 key pair per AWAKE initialization attempt. This key MUST be used as the first step in the ECDH Double Ratchet. In the payload, the public key MUST be formatted as a [did:key](https://w3c-ccg.github.io/did-method-key/#p-256).
 
-This temporary key MUST only be used for key exchange, and MUST NOT be used for signatures, and MUST NOT be persisted past this one session bootsrap (i.e. discard after [Step 3](#33-responder-establishes-point-to-point-session)). It is RECOMMENDED that the private key be non-extractable when possible, such as via the [WebCrypto API](https://developer.mozilla.org/en-US/docs/Web/API/SubtleCrypto/generateKey).
+This temporary key MUST only be used for key exchange, and MUST NOT be used for signatures, and MUST NOT be persisted past this one session bootstrap (i.e. discard after [Step 3](#33-responder-establishes-point-to-point-session)). It is RECOMMENDED that the private key be non-extractable when possible, such as via the [WebCrypto API](https://developer.mozilla.org/en-US/docs/Web/API/SubtleCrypto/generateKey).
     
 ### 3.2.2 Authorization Criteria
 
@@ -414,7 +414,7 @@ The UCAN MUST be issued (`iss`) by the Requestor's DID (not the temporary DID), 
 
 # 3.5 Responder Acknowledgment
 
-The Responder MUST respond with an acknowledgement that the challenge in [§3.4](#34-requestor-challenge) was accepted.
+The Responder MUST respond with an acknowledgment that the challenge in [§3.4](#34-requestor-challenge) was accepted.
 
 ```
 Requestor                  Responder

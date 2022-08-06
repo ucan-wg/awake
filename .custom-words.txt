@@ -32,6 +32,7 @@ UDP
 UTF
 VPN
 WebCrypto
+WebSocket
 WhatsApp
 WireGuard
 XDH
@@ -53,6 +54,7 @@ pubsub
 requestor
 requestor's
 signalled
+trustless
 unpadded
 unrevoked
 untrusted
