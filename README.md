@@ -157,7 +157,7 @@ The payload stage MUST be signalled by the message type `"awake/init"`.
 
 Since this message is sent entirely in the clear, the Requestor MUST generate a fresh P-256 key pair per AWAKE initialization attempt. This key MUST be used as the first step in the ECDH Double Ratchet. In the payload, the public key MUST be formatted as a [did:key](https://w3c-ccg.github.io/did-method-key/#p-256).
 
-This temporary key MUST only be used for key exchange, and MUST NOT be used for signatures, and MUST NOT be persisted past this one session bootstrap (i.e. discard after [Step 3](#33-responder-establishes-point-to-point-session)). It is RECOMMENDED that the private key be non-extractable when possible, such as via the [WebCrypto API](https://developer.mozilla.org/en-US/docs/Web/API/SubtleCrypto/generateKey).
+This temporary key MUST only be used for key exchange, and MUST NOT be used for signatures, and MUST NOT be persisted past this one session bootstrap (i.e. discard after [§3.3](#33-responder-es tablishes-point-to-point-session)). It is RECOMMENDED that the private key be non-extractable when possible, such as via the [WebCrypto API](https://developer.mozilla.org/en-US/docs/Web/API/SubtleCrypto/generateKey).
     
 ### 3.2.2 Authorization Criteria
 
@@ -248,7 +248,7 @@ Upon receipt, the Requestor MUST validate that the UCAN capabilities fulfill the
 
 ### 3.3.1 Validation UCAN
 
-The validation UCAN MUST NOT be used to delegate any capabilities. This UCAN MUST only be used to prove access to capabilities and sign the AES key. The `att` and `my` fields MUST be empty arrays. The issuer (`iss`) field MUST contain the Responder's long-term DID (rather than the temporary ECDH DID). The audience (`aud`) field MUST contain the Requestor's temporary ECDH DID from §[3.2](#32-requestor-broadcasts-intent).
+The validation UCAN MUST NOT be used to delegate any capabilities. This UCAN MUST only be used to prove access to capabilities and sign the AES key. The `att` and `my` fields MUST be empty arrays. The issuer (`iss`) field MUST contain the Responder's long-term DID (rather than the temporary ECDH DID). The audience (`aud`) field MUST contain the Requestor's temporary ECDH DID from [§3.2](#32-requestor-broadcasts-intent).
 
 This UCAN MUST be encrypted with the ECDH-generated 256-bit AES-GCM key plus IV before being placed into the payload in [§3.3.2](#332-payload).
 
