@@ -356,7 +356,7 @@ The AES key for this payload MUST be derived from the Requestor's initial ECDH p
 | ------ | ------------------------------------------- | -------------------------------------------------------------- | -------- |
 | `awv`  | `"0.1.0"`                                   | AWAKE message version                                          | Yes      |
 | `type` | `"awake/msg"`                               | Generic AWAKE message type                                     | Yes      |
-| `id`   | `sha3_256(reqStep2EcdhPk + ResStep3EcdhPk)` | Message ID                                                     | Yes      |
+| `id`   | `sha3_256(reqStep2EcdhPk + resStep3EcdhPk)` | Message ID                                                     | Yes      |
 | `iv`   |                                             | Initialization vector for the encrypted payload                | Yes      |
 | `msg`  |                                             | Fulfilled challenge payload encrypted with Step 4 ECDH AES-key | Yes      |
 
@@ -364,7 +364,7 @@ The AES key for this payload MUST be derived from the Requestor's initial ECDH p
 {
   "awv": "0.1.0",
   "type": "awake/msg",
-  "id": sha3_256(reqStep2EcdhPk + ResStep3EcdhPk),
+  "id": sha3_256(reqStep2EcdhPk + resStep3EcdhPk),
   "iv": iv,
   "msg": encryptedChallenge
 }
@@ -430,7 +430,7 @@ Requestor                  Responder
 | ------ | ------------------------------------------- | -------------------------------------------------------------- | -------- |
 | `awv`  | `"0.1.0"`                                   | AWAKE message version                                          | Yes      |
 | `type` | `"awake/msg"`                               | Generic AWAKE message type                                     | Yes      |
-| `id`   | `sha3_256(reqStep4EcdhPk + ResStep3EcdhPk)` | Message ID                                                     | Yes      |
+| `id`   | `sha3_256(reqStep4EcdhPk + resStep3EcdhPk)` | Message ID                                                     | Yes      |
 | `iv`   |                                             | Initialization vector for the encrypted payload                | Yes      |
 | `msg`  |                                             | Fulfilled challenge payload encrypted with Step 4 ECDH AES-key | Yes      |
 
