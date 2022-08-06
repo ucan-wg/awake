@@ -157,7 +157,7 @@ The payload stage MUST be signalled by the message type `"awake/init"`.
 
 Since this message is sent entirely in the clear, the Requestor MUST generate a fresh P-256 key pair per AWAKE initialization attempt. This key MUST be used as the first step in the ECDH Double Ratchet. In the payload, the public key MUST be formatted as a [did:key](https://w3c-ccg.github.io/did-method-key/#p-256).
 
-This temporary key MUST only be used for key exchange, and MUST NOT be used for signatures, and MUST NOT be persisted past this one session bootstrap (i.e. discard after [§3.3](#33-responder-es tablishes-point-to-point-session)). It is RECOMMENDED that the private key be non-extractable when possible, such as via the [WebCrypto API](https://developer.mozilla.org/en-US/docs/Web/API/SubtleCrypto/generateKey).
+This temporary key MUST only be used for key exchange, and MUST NOT be used for signatures, and MUST NOT be persisted past this one session bootstrap (i.e. discard after [§3.3](#33-responder-establishes-point-to-point-session)). It is RECOMMENDED that the private key be non-extractable when possible, such as via the [WebCrypto API](https://developer.mozilla.org/en-US/docs/Web/API/SubtleCrypto/generateKey).
     
 ### 3.2.2 Authorization Criteria
 
@@ -563,8 +563,6 @@ All errors MUST use the generic AWAKE message format, and include the error in t
 ## 7.1 Mutual TLS (mTLS)
 
 [mTLS](https://www.rfc-editor.org/rfc/rfc8705.html) is the best-known mutual authentication protocol. In many ways, AWAKE is mTLS with trusted rooted in UCAN and a self-signed capabilities model.
-
-Double Ratchet/
 
 ## 7.2 IKEv2
 
