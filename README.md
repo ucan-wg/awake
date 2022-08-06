@@ -23,20 +23,30 @@ AWAKE bootstraps a secure session on top of a public channel. Key exchanges for 
 
 Capability-based systems have a helpful philosophy towards a third path. By emphasizing authorization over authentication, they provide a way to know something provable about what the other party "can do", even if they have no sure way of knowing "who they are". One way of phrasing this is that such an agent is "functionally equivalent to the principal in this context". AWAKE makes use of authorization to bootstrap point-to-point sessions that are both secure and mutually trusted.
 
-## 1.1 Payload Fields
+## 1.1 Terminology
+
+This document contains shorthand (especially in diagrams) and nuanced senses of some terms. Below is a dictionary of AWAKE-specific terms:
+
+| Term   | Meaning                       |
+| ------ | ----------------------------- |
+| ECDH   | Elliptic Curve Diffie-Hellman |
+| PK     | Public key                    |
+| SK     | Secret (private) key          |
+
+## 1.2 Payload Fields
 
 Payloads are encoding agnostic, but JSON is RECOMMENDED. For JSON, any fields that contain non-JSON values (such as ECDH public keys and encryption payloads) MUST be serialized as unpadded [Base64](https://datatracker.ietf.org/doc/html/rfc4648).
 
 Messages that a peer cannot parse SHOULD be ignored.
 
-All payloads MUST include the "AWAKE version" field `awv: "0.1.0"`. Payloads MUST also include a message type field `type` (see each stage for the value). All field keys and message type values MUST be case-insensitive.
+All payloads MUST include the "AWAKE version" field `awv: "0.1.0"`. Payloads MUST also include a message type field `type` (see each stage for the value). All field keys and message type values MUST be lowercase and treated as case-sensitive.
 
 | Field  | Value          | Description           | Required |
 | ------ | -------------- | --------------------- | -------- |
 | `awv`  | `"0.1.0"`      | AWAKE message version | Yes      |
 | `type` | `awake/<type>` | AWAKE message type    | Yes      |
 
-## 1.2 Roles
+## 1.3 Roles
 
 | Name      | Role                                                 |
 | --------- | ---------------------------------------------------- |
@@ -44,23 +54,23 @@ All payloads MUST include the "AWAKE version" field `awv: "0.1.0"`. Payloads MUS
 | Responder | The agent being contacted by the Requestor           |
 | Attacker  | An attacker attempting to gain access to the channel |
 
-## 1.3 Encryption
+## 1.4 Encryption
 
 Encryption is core to securing a tunnel. Key material and secrets created for AWAKE MUST be considered ephemeral and MUST NOT be reused between sessions.
 
 At a high-level, AWAKE uses a NIST P-256 [Elliptic Curve Diffie-Hellman](https://en.wikipedia.org/wiki/Elliptic-curve_Diffie%E2%80%93Hellman) (ECDH) [Double Ratchet](https://signal.org/docs/specifications/doubleratchet/) to secure messages.
 
-### 1.3.1 Asymmetric Keys
+### 1.4.1 Asymmetric Keys
 
-#### 1.3.1.1 Signatures
+#### 1.4.1.1 Signatures
 
 UCAN MUST be used as the signature envelope for AWAKE. Any UCAN-compatible asymmetric key MAY be used for signatures, including RSA, Ed25519, P-256, and so on.
 
-#### 1.3.1.2 Double Ratchet
+#### 1.4.1.2 Double Ratchet
 
 AWAKE's message-level encryption uses an [ECDH](https://en.wikipedia.org/wiki/Elliptic-curve_Diffie%E2%80%93Hellman) [Double Ratchet](https://signal.org/docs/specifications/doubleratchet/) based on the [NIST P-256 elliptic curve](https://neuromancer.sk/std/nist/P-256) curve (AKA `secp256r1`). Nonextractable P-256 keys SHOULD be used where available (e.g. via the [WebCrypto API](https://developer.mozilla.org/en-US/docs/Web/API/SubtleCrypto/generateKey)).
 
-### 1.3.2 Symmetric Keys
+### 1.4.2 Symmetric Keys
 
 All symmetric encryption in AWAKE MUST use [256-bit AES-GCM](https://csrc.nist.gov/publications/detail/sp/800-38d/final). These keys MUST be derived from the [Double Ratchet](https://developer.mozilla.org/en-US/docs/Web/API/SubtleCrypto/deriveKey), and SHOULD be non-extractable where possible (e.g. via the [WebCrypto API](https://developer.mozilla.org/en-US/docs/Web/API/SubtleCrypto/generateKey)).
 
@@ -120,7 +130,7 @@ Attacker                 Requestor                  Responder
 
 ## 3.1 Subscribe to Common Channel
 
-AWAKE begins by all parties listening on a common channel. The channel itself is unimportant: it MAY be broadcast to all listeners, MAY be asynchronous, and MAY be over any transport. To reduce channel noise, it is RECOMMENDED that this channel be scoped to a specific topic.
+AWAKE begins by all parties listening on a common channel. AWAKE itself is cghannel and transport agnostic; it MAY be broadcast to all listeners, MAY be asynchronous, and MAY be over any transport. To reduce channel noise, it is RECOMMENDED that this channel be scoped to a specific topic.
 
 For instance, a websocket pubsub channel on the topic `awake:did:key:zStEZpzSMtTt9k2vszgvCwF4fLQQSyA15W5AQ4z3AR6Bx4eFJ5crJFbuGxKmbma4` MAY be used for messages about resources owned by `did:key:zStEZpzSMtTt9k2vszgvCwF4fLQQSyA15W5AQ4z3AR6Bx4eFJ5crJFbuGxKmbma4`.
 
@@ -208,15 +218,15 @@ The payload contains two encryption layers, and signature: the ECDH components, 
 ```
           Payload
 
-   ┌────────ECDH───────┐
-   │                   │
-   │  Requestor P-256  │
-   │         +         │
-   │  Responder P-256  │
-   │         =         │
-   │    256-bit AES    │
-   │         │         │
-   └─────────┼─────────┘
+  ┌─────────ECDH─────────┐
+  │                      │
+  │  Requestor P-256 SK  │
+  │          +           │
+  │  Responder P-256 PK  │
+  │          =           │
+  │     256-bit AES      │
+  │          │           │
+  └──────────┼───────────┘
              │
              ▼
 ┌─────────AES-GCM─────────┐
@@ -224,7 +234,7 @@ The payload contains two encryption layers, and signature: the ECDH components, 
 │  ┌────────UCAN───────┐  │
 │  │                   │  │
 │  │  iss: Responder   │  │
-│  │  aud: Req-ECDH    │  │
+│  │  aud: ReqECDH     │  │
 │  │  att: []          │  │
 │  │  fct: nextResECDH │  │
 │  │  prf: ...         │  │
@@ -287,15 +297,13 @@ The UCAN's facts (`fct`) field MUST also include the next Responder ECDH public 
   ...,
   "fct": [
     ...,
-    { 
-      "awake/nextpk": base64(step4EcdhPk)
-    },
+    {"awake/nextdid": step4EcdhDid},
     ...
   ]
 }
 ```
 
-If more than one `awake/nextpk` field is set, the lowest-indexed one MUST be used.
+If more than one `awake/nextdid` field is set, the lowest-indexed one MUST be used.
 
 ### 3.3.2 Payload
 
@@ -316,8 +324,8 @@ To start the Double Ratchet, the payload in this stage has the highest number of
 {
   "awv": "0.1.0",
   "type": "awake/res",
-  "iss": responderStep3EcdhPk,
-  "aud": requestorStep2EcdhPk,
+  "iss": responderStep3EcdhDid,
+  "aud": requestorStep2EcdhDid,
   "iv": iv,
   "msg": encryptedUcan 
 }
@@ -454,7 +462,7 @@ Additional cleartext keys MAY be used, but are NOT RECOMMENDED since they can le
 
 ### 4.1 Encrypted Field Keys
 
-Every encrypted payload (`msg`) MUST inlcude a `awake/nextpk` field, updating the public key of the sender for the next message(s). This continues the Double Ratchet and updates the AES key that will be used for successive messages.
+Every encrypted payload (`msg`) MUST inlcude a `awake/nextdid` field, updating the public key of the sender for the next message(s). This continues the Double Ratchet and updates the AES key that will be used for successive messages.
 
 Additional fields MAY be included to contain futher payload.
 
@@ -462,15 +470,17 @@ Additional fields MAY be included to contain futher payload.
 // JSON encoded
 {
   ...,
-  "awake/nextpk": base64(sendersNextEcdhPk)
+  "awake/nextdid": sendersNextEcdhDid
 }
 ```
 
 ## 4.2 Double Ratchet
 
-Each message of the secure session MUST continue the ECDH Double Ratchet, and be encrypted with the resulting 256-bit AES key in Galois/Counter Mode (GCM).
+Each message of the secure session MUST continue the ECDH Double Ratchet, and be encrypted with the resulting 256-bit AES key in Galois/Counter Mode (GCM). Each message MUST include a fresh ECDH key to be used in future messages. If one peer send more messages than the other, the recipient key MAY be reused for multiple messages.
 
-## 5 Disconnection
+Due to the nature of asynchronous protocols, messages MAY arrive and be processed out of order. Keeping old keys for some period of time is RECOMMENDED so that old messages are not lost. To protect against a Byzantine peer flooding its connections with a large number of keys, it is RECOMMENDED that the keys have a TTL, be stored in a fixed-size LIFO queue, or both.
+
+# 5 Disconnection
 
 Graceful disconnection from an AWAKE attempt can be broadcast at any step with the following payload:
  
@@ -500,41 +510,62 @@ The disconnection message MUST include an `awake/fin` key with `disconnect` for 
 }
 ```
 
-# 6 Security
+# 6 Errors
 
-Key flooding, GCing old keys, etc
+### 6.1 Cleartext Envelope
 
+All errors MUST use the generic AWAKE message format, and include the error in the encrypted payload. It MUST use the latest ECDH keys.
 
+| Field  | Value                                   | Description                                                    | Required |
+| ------ | --------------------------------------- | -------------------------------------------------------------- | -------- |
+| `awv`  | `"0.1.0"`                               | AWAKE message version                                          | Yes      |
+| `type` | `"awake/msg"`                           | Generic AWAKE message type                                     | Yes      |
+| `id`   | `sha3_256(latestEcdhPk + latestEcdhPk)` | Message ID                                                     | Yes      |
+| `iv`   |                                         | Initialization vector for the encrypted payload                | Yes      |
+| `msg`  |                                         | Fulfilled challenge payload encrypted with Step 4 ECDH AES-key | Yes      |
+
+## 6.2 Unknown Challenge Type
+
+| Field         | Value               | Description                         | Required |
+| ------------- | ------------------- | ----------------------------------- | -------- |
+| `awake/error` | `unknown-challenge` | Unknown challenge type              | Yes      |
+| `awake/id`    |                     | Message ID that generated the error | Yes      |
+
+``` javascript
+// JSON encoded
+{
+  "awake/error": "unknown-challenge",
+  "awake/id": offendingMessageId
+}
+```
 
 # 7 Prior Art
 
-* mTLS
+## 7.1 Mutual TLS (mTLS)
 
+[mTLS](https://www.rfc-editor.org/rfc/rfc8705.html) is the best-known mutual authentication protocol. In many ways, AWAKE is mTLS with trusted rooted in UCAN and a self-signed capabilities model.
 
+Double Ratchet/
 
+## 7.2 IKEv2
 
-Mutual authentication supports zero trust networking because it can protect communications against adversarial attacks,[8] notably:
+The [Internet Key Exchange (IKE) Protocol](https://datatracker.ietf.org/doc/html/rfc7296) is typically (but not exclusively) used as part of [IPsec](https://en.wikipedia.org/wiki/IPsec). IKE generally uses certificate authorities (CAs). IKE requires that X.509 be supported.
 
-Man-in-the-middle attack
-    Man-in-the-middle (MITM) attacks are when a third party wishes to eavesdrop or intercept a message, and sometimes alter the intended message for the recipient. The two parties openly receive messages without verifying the sender, so they do not realize an adversary has inserted themselves into the communication line. Mutual authentication can prevent MITM attacks because both the sender and recipient verify each other before sending them their message keys, so if one of the parties is not verified to be who they claim they are, the session will end.[9]
-Replay attack
-    A replay attack is similar to a MITM attack in which older messages are replayed out of context to fool the server. However, this does not work against schemes using mutual authentication[10] because timestamps are a verification factor that are used in the protocols.[11][12] If the change in time is greater than the maximum allowed time delay, the session will be aborted.[12] Similarly, messages can include a randomly generated number to keep track of when a message was sent.[11]
-Spoofing attack
-    Spoofing attacks rely on using false data to pose as another user in order to gain access to a server or be identified as someone else. Mutual authentication can prevent spoofing attacks because the server will authenticate the user as well, and verify that they have the correct session key before allowing any further communication and access.[12]
-Impersonation attacks
-    When each party authenticates the other, they send each other a certificate that only the other party knows how to unscramble, verifying themselves as a trusted source. In this way, adversaries cannot use impersonation attacks because they do not have the correct certificate to act as if they are the other party.[6]
+IKE shares many commonalities with AWAKE, including making available of the same cryptographic algorithms (e.g. P-256).
 
-Mutual authentication also ensures information integrity because if the parties are verified to be the correct source, then the information received is reliable as well.[6] 
+## 7.3 WireGuard
 
+[WireGuard](https://www.wireguard.com/) is a VPN protocol that is widely deployed via the Linux kernel, and has since been ported to many other systems. It is UDP-based and simed at raw performance and security. Being so level, is unconstrained in which cryptographic primiitives is uses (i.e. Curve25519).
 
+## 7.4 Message Layer Security (MLS)
 
-# 8 Acknowledgements
+[MLS](https://messaginglayersecurity.rocks/) is a work-in-progress protocol that aims to eventually improve on TLS 1.3. It includes design considerations for doing group messaging, uses ratchet trees, and so on. MLS does include the ability to use certificate authentication (among other authentication methods).
 
-# TODOS
+AWAKE may adopt MLS features in the future as it becomes more mature, but today AWAKE is restricted to a point-to-point protocol.
 
-* [ ] Timeouts
-* [ ] Cancelation messages
-* [ ] Errors
-* [ ] Requestor specify purpose of request
-* [ ] Add subsection about session key to intro
-* [ ] Case insensitivity worth it?
+## 7.5 Signal Protocol
+
+The [Signal Protocol](https://github.com/signalapp/libsignal) influenced the design of AWAKE. Signal is extremely wildely deployed, having been included in WhatsApp, Android Messages, the Signal app, and others.
+
+Signal's deployment targets have complete control over their cryptographic stack, and makes use of algorithms like 3XDH based on Curve25519. The AWAKE threat model includes browser application security taht requires nonextractable keys, and at time of writing very few of these priitives are available.
+
