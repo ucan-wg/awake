@@ -62,19 +62,82 @@ At a high-level, AWAKE uses a NIST P-256 [Elliptic Curve Diffie-Hellman](https:/
 
 ### 1.4.1 Asymmetric Keys
 
-#### 1.4.1.1 Signatures
-
 UCAN MUST be used as the signature envelope for AWAKE. Any UCAN-compatible asymmetric key MAY be used for signatures, including RSA, Ed25519, P-256, and so on.
 
-#### 1.4.1.2 Double Ratchet
+One half of the key agreement in the Double Ratchet (FIXME add section link) uses ECDH P-256.
 
-AWAKE's message-level encryption uses an [ECDH](https://en.wikipedia.org/wiki/Elliptic-curve_Diffie%E2%80%93Hellman) [Double Ratchet](https://signal.org/docs/specifications/doubleratchet/) based on the [NIST P-256 elliptic curve](https://neuromancer.sk/std/nist/P-256) curve (AKA `secp256r1`). Non-extractable P-256 keys SHOULD be used where available (e.g. via the [WebCrypto API](https://developer.mozilla.org/en-US/docs/Web/API/SubtleCrypto/generateKey)).
+
+
+
 
 ### 1.4.2 Symmetric Keys
 
 All symmetric encryption in AWAKE MUST use [256-bit AES-GCM](https://csrc.nist.gov/publications/detail/sp/800-38d/final). These keys MUST be derived from the [Double Ratchet](https://developer.mozilla.org/en-US/docs/Web/API/SubtleCrypto/deriveKey), and SHOULD be non-extractable where possible (e.g. via the [WebCrypto API](https://developer.mozilla.org/en-US/docs/Web/API/SubtleCrypto/generateKey)).
 
 Each encrypted payload MUST include a unique (freshly generated) 12-byte [initialization vector](https://en.wikipedia.org/wiki/Initialization_vector).
+
+### 1.4.3 Double Ratchet
+
+A Double Ratchet consists of two ratchets to agree on a key, one symmetric and one asymmetric. The
+
+#### 1.4.3.1 Asymmetric Ratchet: ECDH
+
+FIXME reword
+
+AWAKE's message-level encryption uses an [ECDH](https://en.wikipedia.org/wiki/Elliptic-curve_Diffie%E2%80%93Hellman) [Double Ratchet](https://signal.org/docs/specifications/doubleratchet/) based on the [NIST P-256 elliptic curve](https://neuromancer.sk/std/nist/P-256) curve (AKA `secp256r1`). Non-extractable P-256 keys SHOULD be used where available (e.g. via the [WebCrypto API](https://developer.mozilla.org/en-US/docs/Web/API/SubtleCrypto/generateKey)).
+
+
+#### 1.4.3.2 Symmetric Ratchet: Hash Chain (FIXME)
+
+
+
+
+
+### 1.4.3.3 Key Derivation
+
+
+FIXME add to s3.4 diagram & initialize in 3.3
+
+
+
+
+```
+Alice's P-256    Bob's P-256    Current
+  Private Key    Public Key     Secret
+           │      │                │
+           │      │                │
+      ┌────┼──────┼────────────────┼───────────────────────┐
+      │    │      │                │                       │
+      │    │      │                │                       │
+      │    ▼      ▼                ▼                       │
+      │   ┌────────┐         ┌──────────┐                  │
+      │   │        │         │          │                  │
+      │   │  ECDH  ├────────►│  Concat  │                  │
+      │   │        │         │          │                  │
+      │   └────────┘         └─────┬────┘                  │
+      │                            │                       │
+      │                            │                       │
+      │                            ▼                       │
+      │                       ┌─────────┐     ┌─────────┐  │
+      │                       │         │     │         │  │     256-bit
+      │                       │ 256-bit ├────►│ 256-bit ├──┼───► AES Key
+      │                       │   SHA3  │     │   SHA3  │  │      (OKM)
+      │                       │         │     │         │  │
+      │                       └────┬────┘     └─────────┘  │
+      │                            │                       │
+      │                            │                       │
+      └────────────────────────────┼───────────────────────┘
+                                   │
+                                   │
+                                   ▼
+                                 Next
+                                Secret
+```
+
+
+
+
+
 
 ## 2 Sequence
 
