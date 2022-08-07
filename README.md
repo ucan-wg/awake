@@ -306,7 +306,7 @@ Upon receipt, the Requestor MUST validate that the UCAN capabilities fulfill the
 
 The validation UCAN MUST NOT be used to delegate any capabilities. This UCAN MUST only be used to prove access to capabilities and sign the AES key. The `att` and `my` fields MUST be empty arrays. The issuer (`iss`) field MUST contain the Responder's long-term DID (rather than the temporary ECDH DID). The audience (`aud`) field MUST contain the Requestor's temporary ECDH DID from [§3.2](#32-requestor-broadcasts-intent).
 
-This UCAN MUST be encrypted with the [KDF-generated AES-GCM key](FIXME) plus IV before being placed into the payload in [§3.3.2](#332-payload).
+This UCAN MUST be encrypted with the [KDF-generated AES-GCM key](#143-key-derivation) plus IV before being placed into the payload in [§3.3.2](#332-payload).
 
 #### 3.3.1.1 Challenge
 
