@@ -122,18 +122,6 @@ The secret chain MUST be update at each step by concatenating the secret generat
 
 The one-time message key MUST be unique for every message since one Diffie-Hellman key with have changed, and the secret is updated per send or receipt.
 
-### 1.4.3.4 Message ID
-
-Since every message's KDF has at least one unique ECDH key, and at most two messages MAY use the same secret in a strict order, the message sequence number is uniquely determined by the latest exchanged ECDH public keys. The exact format MUST be the 256-bit SHA3 of the sender and receiver's ECDH public keys.
-
-``` javascript
-msgId = sha3_256(latestSenderEcdhPk + latestReceiverEcdhPk)
-```
-
-The recipient SHOULD calculate the next possible message IDs, based on known keys. Unless a synchronous protocol is being explicitly used, some number of previous keys SHOULD be considered active to receieve out-of-order messages. The recipient SHOULD store messages that it cannot match message IDs for. As this can lead to a large number of messages, an OPTIONAL session ID based on the SHA3 hash of the first (OKM) MAY be used during the message phase of AWAKE, but moving to a message channel (such as a unique pubsub topic) is RECOMMENDED as it provides the same function with less noise.
-
-To protect against a Byzantine peer flooding its connections with a large number of keys, it is RECOMMENDED that the keys have a TTL, be stored in a fixed-size LIFO queue, or both.
-
 ## 2 Sequence
 
 AWAKE proceeds in one connection step, four communication rounds, and an OPTIONAL disconnection:
@@ -160,7 +148,7 @@ Attacker                 Requestor                  Responder
    │◄────────────────────────┼─────────────────────────►│       │
    │                         │                          │       │
    │                         │       Authorization      │ (3a)  │
-   │                         │       & Session Key      │ (3b)  │
+   │                         │       & Secret Init      │ (3b)  │
    │                         │◄─────────────────────────┤       │
    │                         │                          │       ├─ Handshake
    │                         │        Actual DID        │ (4a)  │
@@ -262,7 +250,7 @@ The Requestor MAY also include validation criteria expected from the Responder. 
 Requestor                  Responder
     ⋮                          ⋮
     │       Authorization      │ (3a)
-    │       & Session Key      │ (3b)
+    │       & Secret Init      │ (3b)
     │◄─────────────────────────┤
     ⋮                          ⋮
 ```
@@ -512,14 +500,17 @@ Requestor                  Responder
 
 Messages sent over an established AWAKE session MUST contain the following keys:
  
-| Field  | Value                                                 | Description                                                    | Required |
-| ------ | ----------------------------------------------------- | -------------------------------------------------------------- | -------- |
-| `awv`  | `"0.1.0"`                                             | AWAKE message version                                          | Yes      |
-| `type` | `"awake/msg"`                                         | Generic AWAKE message type                                     | Yes      |
-| `mid`  | `sha3_256(latestSenderEcdhPk + latestReceiverEcdhPk)` | Message ID                                                     | Yes      |
-| `sid`  | `sha3_256(firstOneTimeMessageKey)`                    | OPTIONAL session ID                                            | No       |
-| `iv`   |                                                       | Initialization vector for the encrypted payload                | Yes      |
-| `msg`  |                                                       | Fulfilled challenge payload encrypted with latest ECDH AES-key | Yes      |
+| Field  | Value                                                 | Description                                                             | Required |
+| ------ | ----------------------------------------------------- | ----------------------------------------------------------------------- | -------- |
+| `awv`  | `"0.1.0"`                                             | AWAKE message version                                                   | Yes      |
+| `type` | `"awake/msg"`                                         | Generic AWAKE message type                                              | Yes      |
+| `mid`  | `sha3_256(latestSenderEcdhPk + latestReceiverEcdhPk)` | Message ID                                                              | Yes      |
+| `sid`  | `sha3_256(firstSecret)`                               | OPTIONAL session ID                                                     | No       |
+| `iv`   |                                                       | Initialization vector for the encrypted payload                         | Yes      |
+| `msg`  |                                                       | Fulfilled challenge payload encrypted with latest ECDH AES-key          | Yes      |
+| `esig` | `encrypt(messageKey, sig(senderUcanSk, msg + mid))`   | OPTIONAL message signature using the sender's UCAN-validated public key | No       |
+
+The OPTIONAL encrypted signature field (`esig`) MAY be included to prove authenticity of the payload. Without this field, an eavesdropper with access to the input secret MAY be able to spoof a message that updates the next ECDH key to one it controls. The signature MUST be encrypted, since some commonly used key types such as RSA allow for the derivation of the signer's public key.
 
 Additional cleartext keys MAY be used, but are NOT RECOMMENDED since they can leak information about your session or the payload. Encrypted payloads MAY be padded with random noise or broken across multiple messages to prevent certain kinds of metadata leakage.
 
@@ -527,28 +518,35 @@ Additional cleartext keys MAY be used, but are NOT RECOMMENDED since they can le
 
 Every encrypted payload (`msg`) MUST include a `awake/nextdid` field, updating the public key of the sender for the next message(s). This continues the Double Ratchet and updates the AES key that will be used for successive messages.
 
-FIXME describe signature field
-
 Additional fields MAY be included to contain further payload.
 
 | Field           | Description                                                          | Required |
 | --------------- | -------------------------------------------------------------------- | -------- |
 | `awake/nextdid` | The next ECDH public key for the sender, formatted as a `did:key`    | Yes      |
-| `awake/msgsig`  | The message payload signed by the sender's UCAN-validated public key | No       |
 
 ``` javascript
 // JSON encoded
 {
   ...,
-  "awake/nextdid": sendersNextEcdhDid,
-  "awake/msgsig": optionalSignature
+  "awake/nextdid": sendersNextEcdhDid
 }
 ```
 
-## 4.2 Double Ratchet Considerations
+## 4.3 Message ID
 
-Each message of the secure session MUST continue the ECDH Double Ratchet, and be encrypted with the resulting 256-bit AES key in Galois/Counter Mode (GCM). Each message MUST include a fresh ECDH key to be used in future messages. If one peer send more messages than the other, the recipient key MAY be reused for multiple messages.
+Since every message's KDF has at least one unique ECDH key, and at most two messages MAY use the same secret in a strict order, the message sequence number is uniquely determined by the latest exchanged ECDH public keys. The exact format MUST be the 256-bit SHA3 of the sender and receiver's ECDH public keys.
 
+``` javascript
+msgId = sha3_256(latestSenderEcdhPk + latestReceiverEcdhPk)
+```
+
+The recipient SHOULD calculate the next possible message IDs, based on known keys. Unless a synchronous protocol is being explicitly used, some number of previous keys SHOULD be considered active to receieve out-of-order messages. The recipient SHOULD store messages that it cannot match message IDs for.
+
+To protect against a Byzantine peer flooding its connections with a large number of keys, it is RECOMMENDED that the keys have a TTL, be stored in a fixed-size LIFO queue, or both.
+
+## 4.2 Session ID
+
+As out-of-order messagess can lead to a large number of messages, an OPTIONAL session ID based on the SHA3 hash of the first input secret (`sha3_256(sah3_256(first_ecdh))`) MAY be used during the message phase of AWAKE, but moving to a message channel (such as a unique pubsub topic) is RECOMMENDED as it provides the same function with less noise.
 
 # 5 Disconnection
 
@@ -569,7 +567,7 @@ Graceful disconnection from an AWAKE attempt can be broadcast at any step with t
 | `awv`  | `"0.1.0"`                                             | AWAKE message version                                          | Yes      |
 | `type` | `"awake/msg"`                                         | Generic AWAKE message type                                     | Yes      |
 | `mid`  | `sha3_256(latestSenderEcdhPk + latestReceiverEcdhPk)` | Message ID                                                     | Yes      |
-| `sid`  |                                                       | OPTIONAL session ID                                            | No       |
+| `sid`  | `sha3_256(firstSecret)`                               | OPTIONAL session ID                                            | No       |
 | `iv`   |                                                       | Initialization vector for the encrypted payload                | Yes      |
 | `msg`  |                                                       | Fulfilled challenge payload encrypted with latest ECDH AES-key | Yes      |
 
@@ -578,8 +576,6 @@ This message MAY be broadcast at any time during an AWAKE session, including to 
 ### 5.1 Encrypted Field Keys
 
 The disconnection message MUST include an `awake/fin` key with `disconnect` for its value. It MAY include additional fields.
-
-FIXME force a UCAN signature?
 
 | Field       | Value        | Description             | Required |
 | ----------- | ------------ | ----------------------- | -------- |
