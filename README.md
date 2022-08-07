@@ -80,6 +80,8 @@ Each encrypted payload MUST include a unique (freshly generated) 12-byte [initia
 
 A Double Ratchet consists of two ratchets to agree on a key, one symmetric and one asymmetric. The
 
+AWAKE uses a modified [Extended Triple Diffie-Hellman (X3DH)](https://www.signal.org/docs/specifications/x3dh/) protocol in order to support the WebCrypto API's non-extractable keys and make use of existing UCAN tokens without the need for presharing keys.
+
 #### 1.4.3.1 Asymmetric Ratchet: ECDH
 
 FIXME reword
@@ -93,45 +95,50 @@ AWAKE's message-level encryption uses an [ECDH](https://en.wikipedia.org/wiki/El
 
 
 
+
 ### 1.4.3.3 Key Derivation
+
 
 
 FIXME add to s3.4 diagram & initialize in 3.3
 
 
 
-
 ```
-Alice's P-256    Bob's P-256    Current
-  Private Key    Public Key     Secret
-           │      │                │
-           │      │                │
-      ┌────┼──────┼────────────────┼───────────────────────────┐
-      │    │      │                │                           │
-      │    │      │                │                           │
-      │    ▼      ▼                ▼                           │
-      │   ┌────────┐         ┌──────────┐                      │
-      │   │        │         │          │                      │
-      │   │  ECDH  ├────────►│  Concat  │                      │
-      │   │        │         │          │                      │
-      │   └────────┘         └─────┬────┘                      │
-      │                            │                           │
-      │                            │                           │
-      │                            ▼                           │
-      │                      ┌───────────┐     ┌───────────┐   │
-      │                      │           │     │           │   │     256-bit
-      │                      │  256-bit  ├────►│  256-bit  ├───┼───► AES Key
-      │                      │    SHA3   │     │    SHA3   │   │      (OKM)
-      │                      │           │     │           │   │
-      │                      └─────┬─────┘     └───────────┘   │
-      │                            │                           │
-      │                            │                           │
-      └────────────────────────────┼───────────────────────────┘
-                                   │
-                                   │
-                                   ▼
-                                 Next
-                                Secret
+         Diffie-Hellman         Symmetric                             One-Time
+            Ratchet              Ratchet                                Key
+┌──────────────┴─────────────┐  ┌───┴───┐                            ┌───┴────┐
+ 
+ Alice's P-256    Bob's P-256    Current
+   Private Key    Public Key     Secret
+            │      │                │
+            │      │                │
+       ┌────┼──────┼────────────────┼───────────────────────────┐
+       │    │      │                │                           │
+       │    │      │                │                           │
+       │    ▼      ▼                ▼                           │
+       │   ┌────────┐         ┌──────────┐                      │
+       │   │        │         │          │                      │
+       │   │  ECDH  ├────────►│  Concat  │                      │
+       │   │        │         │          │                      │
+       │   └────────┘         └─────┬────┘                      │
+       │                            │                           │
+       │                            │                           │
+       │                            ▼                           │
+       │                      ┌───────────┐     ┌───────────┐   │
+       │                      │           │     │           │   │     256-bit
+       │                      │  256-bit  ├────►│  256-bit  ├───┼───► AES Key
+       │                      │    SHA3   │     │    SHA3   │   │      (OKM)
+       │                      │           │     │           │   │
+       │                      └─────┬─────┘     └───────────┘   │
+       │                            │                           │
+       │                            │                           │
+       └────────────────────────────┼───────────────────────────┘
+                                    │
+                                    │
+                                    ▼
+                                  Next
+                                 Secret
 ```
 
 
@@ -278,18 +285,21 @@ This step starts the Double Ratchet. The Responder MUST generate a fresh ECDH P-
 
 The payload contains two encryption layers, and signature: the ECDH components, the AES envelope, and the capability proof signed by the Responder's "true" DID.
 
+
+
+FIXME  refernce KDF section
+
+
+
+
 ```
           Payload
 
-  ┌─────────ECDH─────────┐
-  │                      │
-  │  Requestor P-256 SK  │
-  │          +           │
-  │  Responder P-256 PK  │
-  │          =           │
-  │     256-bit AES      │
-  │          │           │
-  └──────────┼───────────┘
+     ┌──────KDF──────┐
+     │               │
+     │  256-bit AES  │
+     │       │       │
+     └───────┼───────┘
              │
              ▼
 ┌─────────AES-GCM─────────┐
