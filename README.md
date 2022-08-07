@@ -27,11 +27,14 @@ Capability-based systems have a helpful philosophy towards a third path. By emph
 
 This document contains shorthand (especially in diagrams) and nuanced senses of some terms. Below is a dictionary of AWAKE-specific terms:
 
-| Term   | Meaning                       |
-| ------ | ----------------------------- |
-| ECDH   | Elliptic Curve Diffie-Hellman |
-| PK     | Public key                    |
-| SK     | Secret (private) key          |
+| Term      | Meaning                                              |
+| --------- | ---------------------------------------------------- |
+| Attacker  | An attacker attempting to gain access to the channel |
+| ECDH      | Elliptic Curve Diffie-Hellman                        |
+| PK        | Public key                                           |
+| Requestor | The agent opening the session                        |
+| Responder | The agent being contacted by the Requestor           |
+| SK        | Secret (private) key                                 |
 
 ## 1.2 Payload Fields
 
@@ -46,14 +49,6 @@ All payloads MUST include the "AWAKE version" field `awv: "0.1.0"`. Payloads MUS
 | `awv`  | `"0.1.0"`      | AWAKE message version | Yes      |
 | `type` | `awake/<type>` | AWAKE message type    | Yes      |
 
-## 1.3 Roles
-
-| Name      | Role                                                 |
-| --------- | ---------------------------------------------------- |
-| Requestor | The agent opening the session                        |
-| Responder | The agent being contacted by the Requestor           |
-| Attacker  | An attacker attempting to gain access to the channel |
-
 ## 1.4 Encryption
 
 Encryption is core to securing a tunnel. Key material and secrets created for AWAKE MUST be considered ephemeral and MUST NOT be reused between sessions.
@@ -64,50 +59,24 @@ At a high-level, AWAKE uses a NIST P-256 [Elliptic Curve Diffie-Hellman](https:/
 
 UCAN MUST be used as the signature envelope for AWAKE. Any UCAN-compatible asymmetric key MAY be used for signatures, including RSA, Ed25519, P-256, and so on.
 
-One half of the key agreement in the Double Ratchet (FIXME add section link) uses ECDH P-256.
-
-
-
-
+The [ECDH portion](#1431-ecdh-input) of the [Double Ratchet KDF](#143-key-derivation) MUST use P-256.
 
 ### 1.4.2 Symmetric Keys
 
-All symmetric encryption in AWAKE MUST use [256-bit AES-GCM](https://csrc.nist.gov/publications/detail/sp/800-38d/final). These keys MUST be derived from the [Double Ratchet](https://developer.mozilla.org/en-US/docs/Web/API/SubtleCrypto/deriveKey), and SHOULD be non-extractable where possible (e.g. via the [WebCrypto API](https://developer.mozilla.org/en-US/docs/Web/API/SubtleCrypto/generateKey)).
+All symmetric encryption in AWAKE MUST use [256-bit AES-GCM](https://csrc.nist.gov/publications/detail/sp/800-38d/final). These keys MUST be derived from the [Double Ratchet](https://developer.mozilla.org/en-US/docs/Web/API/SubtleCrypto/deriveKey), and SHOULD be non-extractable where possible.
 
 Each encrypted payload MUST include a unique (freshly generated) 12-byte [initialization vector](https://en.wikipedia.org/wiki/Initialization_vector).
 
-### 1.4.3 Double Ratchet
-
-A Double Ratchet consists of two ratchets to agree on a key, one symmetric and one asymmetric. The
+### 1.4.3 Key Derivation
 
 AWAKE uses a modified [Extended Triple Diffie-Hellman (X3DH)](https://www.signal.org/docs/specifications/x3dh/) protocol in order to support the WebCrypto API's non-extractable keys and make use of existing UCAN tokens without the need for presharing keys.
 
-#### 1.4.3.1 Asymmetric Ratchet: ECDH
-
-FIXME reword
-
-AWAKE's message-level encryption uses an [ECDH](https://en.wikipedia.org/wiki/Elliptic-curve_Diffie%E2%80%93Hellman) [Double Ratchet](https://signal.org/docs/specifications/doubleratchet/) based on the [NIST P-256 elliptic curve](https://neuromancer.sk/std/nist/P-256) curve (AKA `secp256r1`). Non-extractable P-256 keys SHOULD be used where available (e.g. via the [WebCrypto API](https://developer.mozilla.org/en-US/docs/Web/API/SubtleCrypto/generateKey)).
-
-
-#### 1.4.3.2 Symmetric Ratchet: Hash Chain (FIXME)
-
-
-
-
-
-
-### 1.4.3.3 Key Derivation
-
-
-
-FIXME add to s3.4 diagram & initialize in 3.3
-
-
+Key derivation in AWAKE's double ratchet MUST use the following algorithm:
 
 ```
-         Diffie-Hellman         Symmetric                             One-Time
-            Ratchet              Ratchet                                Key
-┌──────────────┴─────────────┐  ┌───┴───┐                            ┌───┴────┐
+         Diffie-Hellman          Secret                               One-Time
+            Ratchet               Chain                              Message Key
+┌──────────────┴─────────────┐  ┌───┴───┐                           ┌────┴────┐
  
  Alice's P-256    Bob's P-256    Current
    Private Key    Public Key     Secret
@@ -141,10 +110,29 @@ FIXME add to s3.4 diagram & initialize in 3.3
                                  Secret
 ```
 
+### 1.4.3.1 ECDH Input
 
+The [ECDH](https://en.wikipedia.org/wiki/Elliptic-curve_Diffie%E2%80%93Hellman) secret MUST be generated using [NIST P-256 elliptic curve](https://neuromancer.sk/std/nist/P-256) curve (AKA `secp256r1`). Non-extractable P-256 keys SHOULD be used where available (e.g. via the [WebCrypto API](https://developer.mozilla.org/en-US/docs/Web/API/SubtleCrypto/generateKey)).The sender MUST rotate their public key on every send. This does mean that in the [message phase](#4-secure-session), multiple keys MAY be valid due to concurrency and out-of-order message delivery. 
 
+### 1.4.3.2 Secret Input
 
+The secret chain MUST be update at each step by concatenating the secret generated at the previous step with the current ECDH output, and hashed with 256-bit SHA3. This new secret MUST be used as the input secret for the next message. Note that due to out-of-order message delivery, this secret MAY be used in up to one sent and one received message.
 
+### 1.4.3.3 Output Message Key
+
+The one-time message key MUST be unique for every message since one Diffie-Hellman key with have changed, and the secret is updated per send or receipt.
+
+### 1.4.3.4 Message ID
+
+Since every message's KDF has at least one unique ECDH key, and at most two messages MAY use the same secret in a strict order, the message sequence number is uniquely determined by the latest exchanged ECDH public keys. The exact format MUST be the 256-bit SHA3 of the sender and receiver's ECDH public keys.
+
+``` javascript
+msgId = sha3_256(latestSenderEcdhPk + latestReceiverEcdhPk)
+```
+
+The recipient SHOULD calculate the next possible message IDs, based on known keys. Unless a synchronous protocol is being explicitly used, some number of previous keys SHOULD be considered active to receieve out-of-order messages. The recipient SHOULD store messages that it cannot match message IDs for. As this can lead to a large number of messages, an OPTIONAL session ID based on the SHA3 hash of the first (OKM) MAY be used during the message phase of AWAKE, but moving to a message channel (such as a unique pubsub topic) is RECOMMENDED as it provides the same function with less noise.
+
+To protect against a Byzantine peer flooding its connections with a large number of keys, it is RECOMMENDED that the keys have a TTL, be stored in a fixed-size LIFO queue, or both.
 
 ## 2 Sequence
 
@@ -285,17 +273,12 @@ This step starts the Double Ratchet. The Responder MUST generate a fresh ECDH P-
 
 The payload contains two encryption layers, and signature: the ECDH components, the AES envelope, and the capability proof signed by the Responder's "true" DID.
 
-
-
-FIXME  refernce KDF section
-
-
-
+The SHA3 hash of the AES key generated in this step MUST be used as the first [input secret in the KDF](#1432-secret-input).
 
 ```
           Payload
 
-     ┌──────KDF──────┐
+     ┌──────ECDH─────┐
      │               │
      │  256-bit AES  │
      │       │       │
@@ -323,7 +306,7 @@ Upon receipt, the Requestor MUST validate that the UCAN capabilities fulfill the
 
 The validation UCAN MUST NOT be used to delegate any capabilities. This UCAN MUST only be used to prove access to capabilities and sign the AES key. The `att` and `my` fields MUST be empty arrays. The issuer (`iss`) field MUST contain the Responder's long-term DID (rather than the temporary ECDH DID). The audience (`aud`) field MUST contain the Requestor's temporary ECDH DID from [§3.2](#32-requestor-broadcasts-intent).
 
-This UCAN MUST be encrypted with the ECDH-generated 256-bit AES-GCM key plus IV before being placed into the payload in [§3.3.2](#332-payload).
+This UCAN MUST be encrypted with the [KDF-generated AES-GCM key](FIXME) plus IV before being placed into the payload in [§3.3.2](#332-payload).
 
 #### 3.3.1.1 Challenge
 
@@ -416,11 +399,11 @@ Requestor                  Responder
 
 At this stage, the Responder has been validated, but the Requestor is still untrusted. The Requestor now MUST provide their actual DID over the secure channel, and MUST prove that they are a trusted party rather than a PITM, eavesdropper, or phisher. This is accomplished in a single message.
 
-The Requestor MUST provide the proof of authorization set by the Responder payload in [§3.3.2](https://github.com/ucan-wg/awake/blob/port/README.md#332-validation-ucan). The RECOMMENDED authorization methods are PIN validation (`pin`) and UCAN (`ucan`). Note that if the Requestor does not know how to respond to fulfill an authorization method, the AWAKE connection MUST fail with an [`unknown-challenge` message](#62-unknown-challenge-type).
+The Requestor MUST provide the proof of authorization set by the Responder payload in [§3.3.2](#332-validation-ucan). The RECOMMENDED authorization methods are PIN validation (`pin`) and UCAN (`ucan`). Note that if the Requestor does not know how to respond to fulfill an authorization method, the AWAKE connection MUST fail with an [`unknown-challenge` message](#62-unknown-challenge-type).
 
 ### 3.4.1 Payload
 
-The AES key for this payload MUST be derived from the Requestor's initial ECDH private key and the Responder's ECDH public key set in the UCAN in [§3.3](#33-responder-es tablishes-point-to-point-session).
+This message MUST be encrypted with the first AES output of the AWAKE [KDF](#143-key-derivation), using the initial chain secret established in [§3.3](#33-responder-establishes-point-to-point-session).
 
 | Field  | Value                                       | Description                                                    | Required |
 | ------ | ------------------------------------------- | -------------------------------------------------------------- | -------- |
@@ -496,13 +479,13 @@ Requestor                  Responder
 
 ### 3.5.1 Payload
 
-| Field  | Value                                       | Description                                                    | Required |
-| ------ | ------------------------------------------- | -------------------------------------------------------------- | -------- |
-| `awv`  | `"0.1.0"`                                   | AWAKE message version                                          | Yes      |
-| `type` | `"awake/msg"`                               | Generic AWAKE message type                                     | Yes      |
-| `id`   | `sha3_256(reqStep4EcdhPk + resStep3EcdhPk)` | Message ID                                                     | Yes      |
-| `iv`   |                                             | Initialization vector for the encrypted payload                | Yes      |
-| `msg`  |                                             | Fulfilled challenge payload encrypted with Step 4 ECDH AES-key | Yes      |
+| Field  | Value                             | Description                                                    | Required |
+| ------ | --------------------------------- | -------------------------------------------------------------- | -------- |
+| `awv`  | `"0.1.0"`                         | AWAKE message version                                          | Yes      |
+| `type` | `"awake/msg"`                     | Generic AWAKE message type                                     | Yes      |
+| `id`   | `sha3_256(resEcdhPk + reqEcdhPk)` | Message ID                                                     | Yes      |
+| `iv`   |                                   | Initialization vector for the encrypted payload                | Yes      |
+| `msg`  |                                   | Fulfilled challenge payload encrypted with Step 4 ECDH AES-key | Yes      |
 
 #### 3.5.1.1 Encrypted Message
 
@@ -529,13 +512,14 @@ Requestor                  Responder
 
 Messages sent over an established AWAKE session MUST contain the following keys:
  
-| Field  | Value                                         | Description                                                    | Required |
-| ------ | --------------------------------------------- | -------------------------------------------------------------- | -------- |
-| `awv`  | `"0.1.0"`                                     | AWAKE message version                                          | Yes      |
-| `type` | `"awake/msg"`                                 | Generic AWAKE message type                                     | Yes      |
-| `id`   | `sha3_256(latestReqEcdhPk + latestResEcdhPk)` | Message ID                                                     | Yes      |
-| `iv`   |                                               | Initialization vector for the encrypted payload                | Yes      |
-| `msg`  |                                               | Fulfilled challenge payload encrypted with latest ECDH AES-key | Yes      |
+| Field  | Value                                                 | Description                                                    | Required |
+| ------ | ----------------------------------------------------- | -------------------------------------------------------------- | -------- |
+| `awv`  | `"0.1.0"`                                             | AWAKE message version                                          | Yes      |
+| `type` | `"awake/msg"`                                         | Generic AWAKE message type                                     | Yes      |
+| `mid`  | `sha3_256(latestSenderEcdhPk + latestReceiverEcdhPk)` | Message ID                                                     | Yes      |
+| `sid`  | `sha3_256(firstOneTimeMessageKey)`                    | OPTIONAL session ID                                            | No       |
+| `iv`   |                                                       | Initialization vector for the encrypted payload                | Yes      |
+| `msg`  |                                                       | Fulfilled challenge payload encrypted with latest ECDH AES-key | Yes      |
 
 Additional cleartext keys MAY be used, but are NOT RECOMMENDED since they can leak information about your session or the payload. Encrypted payloads MAY be padded with random noise or broken across multiple messages to prevent certain kinds of metadata leakage.
 
@@ -543,21 +527,28 @@ Additional cleartext keys MAY be used, but are NOT RECOMMENDED since they can le
 
 Every encrypted payload (`msg`) MUST include a `awake/nextdid` field, updating the public key of the sender for the next message(s). This continues the Double Ratchet and updates the AES key that will be used for successive messages.
 
+FIXME describe signature field
+
 Additional fields MAY be included to contain further payload.
+
+| Field           | Description                                                          | Required |
+| --------------- | -------------------------------------------------------------------- | -------- |
+| `awake/nextdid` | The next ECDH public key for the sender, formatted as a `did:key`    | Yes      |
+| `awake/msgsig`  | The message payload signed by the sender's UCAN-validated public key | No       |
 
 ``` javascript
 // JSON encoded
 {
   ...,
-  "awake/nextdid": sendersNextEcdhDid
+  "awake/nextdid": sendersNextEcdhDid,
+  "awake/msgsig": optionalSignature
 }
 ```
 
-## 4.2 Double Ratchet
+## 4.2 Double Ratchet Considerations
 
 Each message of the secure session MUST continue the ECDH Double Ratchet, and be encrypted with the resulting 256-bit AES key in Galois/Counter Mode (GCM). Each message MUST include a fresh ECDH key to be used in future messages. If one peer send more messages than the other, the recipient key MAY be reused for multiple messages.
 
-Due to the nature of asynchronous protocols, messages MAY arrive and be processed out of order. Keeping old keys for some period of time is RECOMMENDED so that old messages are not lost. To protect against a Byzantine peer flooding its connections with a large number of keys, it is RECOMMENDED that the keys have a TTL, be stored in a fixed-size LIFO queue, or both.
 
 # 5 Disconnection
 
@@ -573,19 +564,22 @@ Requestor                  Responder
 
 Graceful disconnection from an AWAKE attempt can be broadcast at any step with the following payload:
  
-| Field  | Value                                         | Description                                                    | Required |
-| ------ | --------------------------------------------- | -------------------------------------------------------------- | -------- |
-| `awv`  | `"0.1.0"`                                     | AWAKE message version                                          | Yes      |
-| `type` | `"awake/msg"`                                 | Generic AWAKE message type                                     | Yes      |
-| `id`   | `sha3_256(latestReqEcdhPk + latestResEcdhPk)` | Message ID                                                     | Yes      |
-| `iv`   |                                               | Initialization vector for the encrypted payload                | Yes      |
-| `msg`  |                                               | Fulfilled challenge payload encrypted with latest ECDH AES-key | Yes      |
+| Field  | Value                                                 | Description                                                    | Required |
+| ------ | ----------------------------------------------------- | -------------------------------------------------------------- | -------- |
+| `awv`  | `"0.1.0"`                                             | AWAKE message version                                          | Yes      |
+| `type` | `"awake/msg"`                                         | Generic AWAKE message type                                     | Yes      |
+| `mid`  | `sha3_256(latestSenderEcdhPk + latestReceiverEcdhPk)` | Message ID                                                     | Yes      |
+| `sid`  |                                                       | OPTIONAL session ID                                            | No       |
+| `iv`   |                                                       | Initialization vector for the encrypted payload                | Yes      |
+| `msg`  |                                                       | Fulfilled challenge payload encrypted with latest ECDH AES-key | Yes      |
 
 This message MAY be broadcast at any time during an AWAKE session, including to cancel the AWAKE handshake attempt. This payload SHOULD NOT contain any other keys.
 
 ### 5.1 Encrypted Field Keys
 
 The disconnection message MUST include an `awake/fin` key with `disconnect` for its value. It MAY include additional fields.
+
+FIXME force a UCAN signature?
 
 | Field       | Value        | Description             | Required |
 | ----------- | ------------ | ----------------------- | -------- |
