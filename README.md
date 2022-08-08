@@ -393,13 +393,13 @@ The Requestor MUST provide the proof of authorization set by the Responder paylo
 
 This message MUST be encrypted with the first AES output of the AWAKE [KDF](#143-key-derivation), using the initial chain secret established in [§3.3](#33-responder-establishes-point-to-point-session).
 
-| Field  | Value                                       | Description                                                      | Required |
-| ------ | ------------------------------------------- | ---------------------------------------------------------------- | -------- |
-| `awv`  | `"0.1.0"`                                   | AWAKE message version                                            | Yes      |
-| `type` | `"awake/msg"`                               | Generic AWAKE message type                                       | Yes      |
-| `id`   | `sha3_256(reqStep2EcdhPk + resStep3EcdhPk)` | Message ID                                                       | Yes      |
-| `iv`   |                                             | Initialization vector for the encrypted payload                  | Yes      |
-| `msg`  |                                             | Fulfilled challenge payload encrypted with AES key from KDF step | Yes      |
+| Field  | Value                                       | Description                                                    | Required |
+| ------ | ------------------------------------------- | -------------------------------------------------------------- | -------- |
+| `awv`  | `"0.1.0"`                                   | AWAKE message version                                          | Yes      |
+| `type` | `"awake/msg"`                               | Generic AWAKE message type                                     | Yes      |
+| `id`   | `sha3_256(reqStep2EcdhPk + resStep3EcdhPk)` | Message ID                                                     | Yes      |
+| `iv`   |                                             | Initialization vector for the encrypted payload                | Yes      |
+| `msg`  |                                             | Fulfilled challenge payload encrypted with AES-deroved AES key | Yes      |
 
 ``` javascript
 {
@@ -500,15 +500,15 @@ Requestor                  Responder
 
 Messages sent over an established AWAKE session MUST contain the following keys:
  
-| Field  | Value                                                 | Description                                                             | Required |
-| ------ | ----------------------------------------------------- | ----------------------------------------------------------------------- | -------- |
-| `awv`  | `"0.1.0"`                                             | AWAKE message version                                                   | Yes      |
-| `type` | `"awake/msg"`                                         | Generic AWAKE message type                                              | Yes      |
-| `mid`  | `sha3_256(latestSenderEcdhPk + latestReceiverEcdhPk)` | Message ID                                                              | Yes      |
-| `sid`  | `sha3_256(firstSecret)`                               | OPTIONAL session ID                                                     | No       |
-| `iv`   |                                                       | Initialization vector for the encrypted payload                         | Yes      |
-| `msg`  |                                                       | Fulfilled challenge payload encrypted with latest ECDH AES-key          | Yes      |
-| `esig` | `encrypt(messageKey, sig(senderUcanSk, msg + mid))`   | OPTIONAL message signature using the sender's UCAN-validated public key | No       |
+| Field  | Value                                                 | Description                                                            | Required |
+| ------ | ----------------------------------------------------- | ---------------------------------------------------------------------- | -------- |
+| `awv`  | `"0.1.0"`                                             | AWAKE message version                                                  | Yes      |
+| `type` | `"awake/msg"`                                         | Generic AWAKE message type                                             | Yes      |
+| `mid`  | `sha3_256(latestSenderEcdhPk + latestReceiverEcdhPk)` | Message ID                                                             | Yes      |
+| `sid`  | `sha3_256(firstSecret)`                               | OPTIONAL session ID                                                    | No       |
+| `iv`   |                                                       | Initialization vector for the encrypted payload                        | Yes      |
+| `msg`  |                                                       | Fulfilled challenge payload encrypted with latest KDF AES-key          | Yes      |
+| `esig` | `encrypt(messageKey, sig(senderUcanSk, msg + mid))`   | OPTIONAL message signature using the sender's UCAN-vaidated public key | No       |
 
 The OPTIONAL encrypted signature field (`esig`) MAY be included to prove authenticity of the payload. Without this field, an eavesdropper with access to the input secret MAY be able to spoof a message that updates the next ECDH key to one it controls. The signature MUST be encrypted, since some commonly used key types such as RSA allow for the derivation of the signer's public key.
 
@@ -560,17 +560,7 @@ Requestor                  Responder
     ▀                          ▀ 
 ```
 
-Graceful disconnection from an AWAKE attempt can be broadcast at any step with the following payload:
- 
-| Field  | Value                                                 | Description                                                    | Required |
-| ------ | ----------------------------------------------------- | -------------------------------------------------------------- | -------- |
-| `awv`  | `"0.1.0"`                                             | AWAKE message version                                          | Yes      |
-| `type` | `"awake/msg"`                                         | Generic AWAKE message type                                     | Yes      |
-| `mid`  | `sha3_256(latestSenderEcdhPk + latestReceiverEcdhPk)` | Message ID                                                     | Yes      |
-| `sid`  | `sha3_256(firstSecret)`                               | OPTIONAL session ID                                            | No       |
-| `iv`   |                                                       | Initialization vector for the encrypted payload                | Yes      |
-
-This message MAY be broadcast at any time during an AWAKE session, including to cancel the AWAKE handshake attempt. This payload SHOULD NOT contain any other keys.
+Graceful disconnection from an AWAKE attempt MAY be broadcast at any time during an AWAKE session, including to cancel the AWAKE handshake attempt. This payload MUST be the standard [AWAKE message type](#4-secure-session), SHOULD NOT contain any other keys.
 
 ### 5.1 Encrypted Field Keys
 
@@ -592,28 +582,20 @@ The disconnection message MUST include an `awake/fin` key with `disconnect` for 
 
 ### 6.1 Cleartext Envelope
 
-All errors MUST use the generic AWAKE message format, and include the error in the encrypted payload. It MUST use the latest ECDH keys.
-
-| Field  | Value                                   | Description                                                    | Required |
-| ------ | --------------------------------------- | -------------------------------------------------------------- | -------- |
-| `awv`  | `"0.1.0"`                               | AWAKE message version                                          | Yes      |
-| `type` | `"awake/msg"`                           | Generic AWAKE message type                                     | Yes      |
-| `id`   | `sha3_256(latestEcdhPk + latestEcdhPk)` | Message ID                                                     | Yes      |
-| `iv`   |                                         | Initialization vector for the encrypted payload                | Yes      |
-| `msg`  |                                         | Fulfilled challenge payload encrypted with Step 4 ECDH AES-key | Yes      |
+All errors MUST use the generic [AWAKE message payload](#4-secure-session), and include the error information in the encrypted payload. It MUST use the latest ECDH keys.
 
 ## 6.2 Unknown Challenge Error
 
 | Field         | Value               | Description                         | Required |
 | ------------- | ------------------- | ----------------------------------- | -------- |
 | `awake/error` | `unknown-challenge` | Unknown challenge type              | Yes      |
-| `awake/id`    |                     | Message ID that generated the error | Yes      |
+| `awake/mid`   |                     | Message ID that generated the error | Yes      |
 
 ``` javascript
 // JSON encoded
 {
   "awake/error": "unknown-challenge",
-  "awake/id": offendingMessageId
+  "awake/mid": offendingMessageId
 }
 ```
 
