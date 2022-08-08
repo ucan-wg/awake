@@ -387,7 +387,7 @@ Requestor                  Responder
 
 At this stage, the Responder has been validated, but the Requestor is still untrusted. The Requestor now MUST provide their actual DID over the secure channel, and MUST prove that they are a trusted party rather than a PITM, eavesdropper, or phisher. This is accomplished in a single message.
 
-The Requestor MUST provide the proof of authorization set by the Responder payload in [§3.3.2](#332-validation-ucan). The RECOMMENDED authorization methods are PIN validation (`pin`) and UCAN (`ucan`). Note that if the Requestor does not know how to respond to fulfill an authorization method, the AWAKE connection MUST fail with an [`unknown-challenge` message](#62-unknown-challenge-type).
+The Requestor MUST provide the proof of authorization set by the Responder payload in [§3.3.2](#332-validation-ucan). The RECOMMENDED authorization methods are PIN validation (`pin`) and UCAN (`ucan`). Note that if the Requestor does not know how to respond to fulfill an authorization method, the AWAKE connection MUST fail with an [`unknown-challenge` message](#62-unknown-challenge-error).
 
 ### 3.4.1 Payload
 
@@ -602,7 +602,7 @@ All errors MUST use the generic AWAKE message format, and include the error in t
 | `iv`   |                                         | Initialization vector for the encrypted payload                | Yes      |
 | `msg`  |                                         | Fulfilled challenge payload encrypted with Step 4 ECDH AES-key | Yes      |
 
-## 6.2 Unknown Challenge Type
+## 6.2 Unknown Challenge Error
 
 | Field         | Value               | Description                         | Required |
 | ------------- | ------------------- | ----------------------------------- | -------- |
