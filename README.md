@@ -399,7 +399,7 @@ This message MUST be encrypted with the first AES output of the AWAKE [KDF](#143
 | `type` | `"awake/msg"`                               | Generic AWAKE message type                                     | Yes      |
 | `id`   | `sha3_256(reqStep2EcdhPk + resStep3EcdhPk)` | Message ID                                                     | Yes      |
 | `iv`   |                                             | Initialization vector for the encrypted payload                | Yes      |
-| `msg`  |                                             | Fulfilled challenge payload encrypted with AES-deroved AES key | Yes      |
+| `msg`  |                                             | Fulfilled challenge payload encrypted with AES-derived AES key | Yes      |
 
 ``` javascript
 {
@@ -500,15 +500,15 @@ Requestor                  Responder
 
 Messages sent over an established AWAKE session MUST contain the following keys:
  
-| Field  | Value                                                 | Description                                                            | Required |
-| ------ | ----------------------------------------------------- | ---------------------------------------------------------------------- | -------- |
-| `awv`  | `"0.1.0"`                                             | AWAKE message version                                                  | Yes      |
-| `type` | `"awake/msg"`                                         | Generic AWAKE message type                                             | Yes      |
-| `mid`  | `sha3_256(latestSenderEcdhPk + latestReceiverEcdhPk)` | Message ID                                                             | Yes      |
-| `sid`  | `sha3_256(firstSecret)`                               | OPTIONAL session ID                                                    | No       |
-| `iv`   |                                                       | Initialization vector for the encrypted payload                        | Yes      |
-| `msg`  |                                                       | Fulfilled challenge payload encrypted with latest KDF AES-key          | Yes      |
-| `esig` | `encrypt(messageKey, sig(senderUcanSk, msg + mid))`   | OPTIONAL message signature using the sender's UCAN-vaidated public key | No       |
+| Field  | Value                                                 | Description                                                             | Required |
+| ------ | ----------------------------------------------------- | ----------------------------------------------------------------------- | -------- |
+| `awv`  | `"0.1.0"`                                             | AWAKE message version                                                   | Yes      |
+| `type` | `"awake/msg"`                                         | Generic AWAKE message type                                              | Yes      |
+| `mid`  | `sha3_256(latestSenderEcdhPk + latestReceiverEcdhPk)` | Message ID                                                              | Yes      |
+| `sid`  | `sha3_256(firstSecret)`                               | OPTIONAL session ID                                                     | No       |
+| `iv`   |                                                       | Initialization vector for the encrypted payload                         | Yes      |
+| `msg`  |                                                       | Fulfilled challenge payload encrypted with latest KDF AES-key           | Yes      |
+| `esig` | `encrypt(messageKey, sig(senderUcanSk, msg + mid))`   | OPTIONAL message signature using the sender's UCAN-validated public key | No       |
 
 The OPTIONAL encrypted signature field (`esig`) MAY be included to prove authenticity of the payload. Without this field, an eavesdropper with access to the input secret MAY be able to spoof a message that updates the next ECDH key to one it controls. The signature MUST be encrypted, since some commonly used key types such as RSA allow for the derivation of the signer's public key.
 
