@@ -77,37 +77,55 @@ Key derivation in AWAKE's double ratchet MUST use the following algorithm:
          Diffie-Hellman          Secret                               One-Time
             Ratchet               Chain                              Message Key
 ┌──────────────┴─────────────┐  ┌───┴───┐                           ┌────┴────┐
- 
  Alice's P-256    Bob's P-256    Current
    Private Key    Public Key     Secret
-            │      │                │
-            │      │                │
-       ┌────┼──────┼────────────────┼───────────────────────────┐
-       │    │      │                │                           │
-       │    │      │                │                           │
-       │    ▼      ▼                ▼                           │
-       │   ┌────────┐         ┌──────────┐                      │
-       │   │        │         │          │                      │
-       │   │  ECDH  ├────────►│  Concat  │                      │
-       │   │        │         │          │                      │
-       │   └────────┘         └─────┬────┘                      │
-       │                            │                           │
-       │                            │                           │
-       │                            ▼                           │
-       │                      ┌───────────┐     ┌───────────┐   │
-       │                      │           │     │           │   │     256-bit
-       │                      │  256-bit  ├────►│  256-bit  ├───┼───► AES Key
-       │                      │    SHA3   │     │    SHA3   │   │      (OKM)
-       │                      │           │     │           │   │
-       │                      └─────┬─────┘     └───────────┘   │
-       │                            │                           │
-       │                            │                           │
-       └────────────────────────────┼───────────────────────────┘
+            │      │             │  │
+            │      │             │  │
+      ┌─────┼──────┼─────────────┼──┼──────────────────────────┐
+      │     │      │             │  │                          │
+      │     │      │             │  │                          │
+      │     ▼      ▼             │  │                          │
+      │    ┌────────┐            │  │                          │
+      │    │        │            │  │                          │
+      │    │  ECDH  │            │  │                          │
+      │    │        │            │  │                          │
+      │    └────┬───┘      ┌─────┘  │                          │
+      │         │          │        │                          │
+      │         │          │        │                          │
+      │         ▼          │        ▼                          │
+      │    ┌─────────┐     │  ┌──────────┐     ┌───────────┐   │
+      │    │         │ 2/2 │  │          │     │           │   │     256-bit
+      │    │  Split  ├─────┼─►│  Concat  ├────►│  256-bit  ├───┼───► AES Key
+      │    │         │     │  │          │     │    SHA3   │   │      (OKM)
+      │    └────┬────┘     │  └──────────┘     │           │   │
+      │         │          │                   └───────────┘   │
+      │     1/2 │          │                                   │
+      │         │  ┌───────┘                                   │
+      │         ▼  ▼                                           │
+      │   ┌──────────┐        ┌───────────┐                    │
+      │   │          │        │           │                    │
+      │   │  Concat  ├───────►│  256-bit  │                    │
+      │   │          │        │    SHA3   │                    │
+      │   └──────────┘        │           │                    │
+      │                       └─────┬─────┘                    │
+      │                             │                          │
+      │                             │                          │
+      └─────────────────────────────┼──────────────────────────┘
                                     │
                                     │
                                     ▼
                                   Next
                                  Secret
+```
+
+``` javascript
+// JS-flavored Pseudocode
+
+const ecdhSecret = ecdh(aliceSk, bobPk)
+const [firstHalf, secondHalf] = ecdhSecret.split()
+
+nextSecret = sha3_256(currentSecret.concat(firstHalf))
+okm = sha3_256(currentSecret.concat(secondHalf))
 ```
 
 ### 1.4.3.1 ECDH Input
@@ -546,7 +564,7 @@ To protect against a Byzantine peer flooding its connections with a large number
 
 ## 4.2 Session ID
 
-As out-of-order messages can lead to a large number of messages, an OPTIONAL session ID based on the SHA3 hash of the first KDF output (AES key) (`sha3_256(aes_key)`) MAY be used during the message phase of AWAKE, but moving to a message channel (such as a unique pubsub topic) is RECOMMENDED as it provides the same function with less noise.
+As out-of-order messages can lead to a large number of messages, an OPTIONAL session ID based on the SHA3 hash of the first KDF output secret (`sha3_256(newSecret)`) MAY be used during the message phase of AWAKE, but moving to a message channel (such as a unique pubsub topic) is RECOMMENDED as it provides the same function with less noise.
 
 # 5 Disconnection
 
