@@ -393,13 +393,13 @@ The Requestor MUST provide the proof of authorization set by the Responder paylo
 
 This message MUST be encrypted with the first AES output of the AWAKE [KDF](#143-key-derivation), using the initial chain secret established in [§3.3](#33-responder-establishes-point-to-point-session).
 
-| Field  | Value                                       | Description                                                    | Required |
-| ------ | ------------------------------------------- | -------------------------------------------------------------- | -------- |
-| `awv`  | `"0.1.0"`                                   | AWAKE message version                                          | Yes      |
-| `type` | `"awake/msg"`                               | Generic AWAKE message type                                     | Yes      |
-| `id`   | `sha3_256(reqStep2EcdhPk + resStep3EcdhPk)` | Message ID                                                     | Yes      |
-| `iv`   |                                             | Initialization vector for the encrypted payload                | Yes      |
-| `msg`  |                                             | Fulfilled challenge payload encrypted with Step 4 ECDH AES-key | Yes      |
+| Field  | Value                                       | Description                                                      | Required |
+| ------ | ------------------------------------------- | ---------------------------------------------------------------- | -------- |
+| `awv`  | `"0.1.0"`                                   | AWAKE message version                                            | Yes      |
+| `type` | `"awake/msg"`                               | Generic AWAKE message type                                       | Yes      |
+| `id`   | `sha3_256(reqStep2EcdhPk + resStep3EcdhPk)` | Message ID                                                       | Yes      |
+| `iv`   |                                             | Initialization vector for the encrypted payload                  | Yes      |
+| `msg`  |                                             | Fulfilled challenge payload encrypted with AES key from KDF step | Yes      |
 
 ``` javascript
 {
