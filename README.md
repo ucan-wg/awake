@@ -27,14 +27,14 @@ Capability-based systems have a helpful philosophy towards a third path. By emph
 
 This document contains shorthand (especially in diagrams) and nuanced senses of some terms. Below is a dictionary of AWAKE-specific terms:
 
-| Term      | Meaning                                              |
-| --------- | ---------------------------------------------------- |
-| Attacker  | An attacker attempting to gain access to the channel |
-| ECDH      | Elliptic Curve Diffie-Hellman                        |
-| PK        | Public key                                           |
-| Requestor | The agent opening the session                        |
-| Responder | The agent being contacted by the Requestor           |
-| SK        | Secret (private) key                                 |
+| Term      | Meaning                                                          |
+| --------- | ---------------------------------------------------------------- |
+| Attacker  | A malicious third party attempting to gain access to the channel |
+| ECDH      | Elliptic Curve Diffie-Hellman                                    |
+| PK        | Public key                                                       |
+| Requestor | The agent opening the session                                    |
+| Responder | The agent being contacted by the Requestor                       |
+| SK        | Secret (private) key                                             |
 
 ## 1.2 Payload Fields
 
