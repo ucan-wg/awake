@@ -577,7 +577,7 @@ Requestor                  Responder
     ▀                          ▀ 
 ```
 
-Graceful disconnection from an AWAKE attempt MAY be broadcast at any time during an AWAKE session, including to cancel the AWAKE handshake attempt. This payload MUST be the standard [AWAKE message type](#4-secure-session), SHOULD NOT contain any other keys.
+Graceful disconnection from an AWAKE attempt MAY be broadcast at any time during an AWAKE session, including to cancel the AWAKE handshake attempt. This payload MUST be the standard [AWAKE message type](#4-secure-session) and SHOULD NOT contain any other keys.
 
 ### 5.1 Encrypted Field Keys
 
