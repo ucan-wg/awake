@@ -368,7 +368,7 @@ If more than one `awake/nextdid` field is set, the lowest-indexed one MUST be us
 
 ### 3.3.2 Payload
 
-To start the Double Ratchet, the payload in this stage has the highest number of cleartext fields. Note that the value in the `res` field contain the temporary ECDH DIDs, and MUST NOT use the Responder's actual long-term DID. Conversely, the UCAN inside the encrypted payload MUST use the Responder's long-term DID.
+To start the Double Ratchet, the payload in this stage has the highest number of cleartext fields. Note that the value in the `iss` field contain the temporary ECDH DIDs, and MUST NOT use the Responder's actual long-term DID. Conversely, the UCAN inside the encrypted payload MUST use the Responder's long-term DID.
 
 | Field  | Value         | Description                                                                              | Required |
 | ------ | ------------- | ---------------------------------------------------------------------------------------- | -------- |
