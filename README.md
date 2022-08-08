@@ -633,7 +633,7 @@ IKE shares many commonalities with AWAKE, including making available of the same
 
 ## 7.3 WireGuard
 
-[WireGuard](https://www.wireguard.com/) is a VPN protocol that is widely deployed via the Linux kernel, and has since been ported to many other systems. It is UDP-based and aimed at raw performance and security. Being so level, is unconstrained in which cryptographic primitives is uses (i.e. Curve25519).
+[WireGuard](https://www.wireguard.com/) is a VPN protocol that is widely deployed via the Linux kernel, and has since been ported to many other systems. It is UDP-based and aimed at raw performance and security. Being low-level, is unconstrained in which cryptographic primitives is uses (i.e. Curve25519).
 
 ## 7.4 Message Layer Security (MLS)
 
