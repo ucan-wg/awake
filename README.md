@@ -497,7 +497,7 @@ Requestor                  Responder
 
 #### 3.5.1.1 Encrypted Message
 
-The encrypted message payload MUST include an `awake/ack` field, with a value of the requestor's long-term DID. This payload MAY contain additional fields. This is often useful if dovetailing the ACK with the first message of a session using the 
+The encrypted message payload MUST include an `awake/ack` field, with a value of the requestor's long-term DID. This payload MAY contain additional fields. This is often useful if dovetailing the ACK with the first message of the session.
 
 ``` javascript
 {
