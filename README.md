@@ -505,7 +505,7 @@ Messages sent over an established AWAKE session MUST contain the following keys:
 | `awv`  | `"0.1.0"`                                             | AWAKE message version                                                   | Yes      |
 | `type` | `"awake/msg"`                                         | Generic AWAKE message type                                              | Yes      |
 | `mid`  | `sha3_256(latestSenderEcdhPk + latestReceiverEcdhPk)` | Message ID                                                              | Yes      |
-| `sid`  | `sha3_256(firstSecret)`                               | OPTIONAL session ID                                                     | No       |
+| `sid`  | `sha3_256(firstAesKey)`                               | OPTIONAL session ID                                                     | No       |
 | `iv`   |                                                       | Initialization vector for the encrypted payload                         | Yes      |
 | `msg`  |                                                       | Fulfilled challenge payload encrypted with latest KDF AES-key           | Yes      |
 | `esig` | `encrypt(messageKey, sig(senderUcanSk, msg + mid))`   | OPTIONAL message signature using the sender's UCAN-validated public key | No       |
@@ -546,7 +546,7 @@ To protect against a Byzantine peer flooding its connections with a large number
 
 ## 4.2 Session ID
 
-As out-of-order messages can lead to a large number of messages, an OPTIONAL session ID based on the SHA3 hash of the first input secret (`sha3_256(sah3_256(first_ecdh))`) MAY be used during the message phase of AWAKE, but moving to a message channel (such as a unique pubsub topic) is RECOMMENDED as it provides the same function with less noise.
+As out-of-order messages can lead to a large number of messages, an OPTIONAL session ID based on the SHA3 hash of the first KDF output (AES key) (`sha3_256(aes_key)`) MAY be used during the message phase of AWAKE, but moving to a message channel (such as a unique pubsub topic) is RECOMMENDED as it provides the same function with less noise.
 
 # 5 Disconnection
 
