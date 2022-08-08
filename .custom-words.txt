@@ -1,10 +1,12 @@
 ACK
 AES
 AKE
+API's
 AWAKE's
 Bluesky
 CAs
 Cleartext
+Concat
 DIDs
 Diffie
 ECDH
@@ -13,9 +15,11 @@ Holmgren
 IKEv
 IPsec
 JSON
+KDF
 MLS
 NIST
 PITM
+PKM
 RSA
 ReqECDH
 Requestor's

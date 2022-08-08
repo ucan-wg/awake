@@ -69,7 +69,7 @@ Each encrypted payload MUST include a unique (freshly generated) 12-byte [initia
 
 ### 1.4.3 Key Derivation
 
-AWAKE uses a modified [Extended Triple Diffie-Hellman (X3DH)](https://www.signal.org/docs/specifications/x3dh/) protocol in order to support the WebCrypto API's non-extractable keys and make use of existing UCAN tokens without the need for presharing keys.
+AWAKE uses a modified [Extended Triple Diffie-Hellman (X3DH)](https://www.signal.org/docs/specifications/x3dh/) protocol in order to support the WebCrypto API's non-extractable keys and make use of existing UCAN tokens without the need for pre-sharing keys.
 
 Key derivation in AWAKE's double ratchet MUST use the following algorithm:
 
@@ -546,7 +546,7 @@ To protect against a Byzantine peer flooding its connections with a large number
 
 ## 4.2 Session ID
 
-As out-of-order messagess can lead to a large number of messages, an OPTIONAL session ID based on the SHA3 hash of the first input secret (`sha3_256(sah3_256(first_ecdh))`) MAY be used during the message phase of AWAKE, but moving to a message channel (such as a unique pubsub topic) is RECOMMENDED as it provides the same function with less noise.
+As out-of-order messages can lead to a large number of messages, an OPTIONAL session ID based on the SHA3 hash of the first input secret (`sha3_256(sah3_256(first_ecdh))`) MAY be used during the message phase of AWAKE, but moving to a message channel (such as a unique pubsub topic) is RECOMMENDED as it provides the same function with less noise.
 
 # 5 Disconnection
 
@@ -569,7 +569,6 @@ Graceful disconnection from an AWAKE attempt can be broadcast at any step with t
 | `mid`  | `sha3_256(latestSenderEcdhPk + latestReceiverEcdhPk)` | Message ID                                                     | Yes      |
 | `sid`  | `sha3_256(firstSecret)`                               | OPTIONAL session ID                                            | No       |
 | `iv`   |                                                       | Initialization vector for the encrypted payload                | Yes      |
-| `msg`  |                                                       | Fulfilled challenge payload encrypted with latest ECDH AES-key | Yes      |
 
 This message MAY be broadcast at any time during an AWAKE session, including to cancel the AWAKE handshake attempt. This payload SHOULD NOT contain any other keys.
 
