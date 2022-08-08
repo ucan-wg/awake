@@ -528,9 +528,6 @@ Messages sent over an established AWAKE session MUST contain the following keys:
 | `sid`  | `sha3_256(firstAesKey)`                               | Session ID                                                     | No       |
 | `iv`   |                                                       | Initialization vector for the encrypted payload                | Yes      |
 | `msg`  |                                                       | Fulfilled challenge payload encrypted with latest KDF AES-key  | Yes      |
-| `esig` | `encrypt(messageKey, sig(senderUcanSk, msg + mid))`   | Message signature using the sender's UCAN-validated public key | No       |
-
-The OPTIONAL encrypted signature field (`esig`) MAY be included to prove authenticity of the payload. Without this field, an eavesdropper with access to the input secret MAY be able to spoof a message that updates the next ECDH key to one it controls. The signature MUST be encrypted, since some commonly used key types such as RSA allow for the derivation of the signer's public key.
 
 Additional cleartext keys MAY be used, but are NOT RECOMMENDED since they can leak information about your session or the payload. Encrypted payloads MAY be padded with random noise or broken across multiple messages to prevent certain kinds of metadata leakage.
 
