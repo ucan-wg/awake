@@ -18,6 +18,7 @@ JSON
 KDF
 MLS
 NIST
+OKM
 PITM
 PKM
 RSA
@@ -53,6 +54,7 @@ iss
 mTLS
 nextReqECDH
 nextResECDH
+pre
 prf
 pubsub
 requestor

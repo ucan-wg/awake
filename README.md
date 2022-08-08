@@ -540,7 +540,7 @@ Since every message's KDF has at least one unique ECDH key, and at most two mess
 msgId = sha3_256(latestSenderEcdhPk + latestReceiverEcdhPk)
 ```
 
-The recipient SHOULD calculate the next possible message IDs, based on known keys. Unless a synchronous protocol is being explicitly used, some number of previous keys SHOULD be considered active to receieve out-of-order messages. The recipient SHOULD store messages that it cannot match message IDs for.
+The recipient SHOULD calculate the next possible message IDs, based on known keys. Unless a synchronous protocol is being explicitly used, some number of previous keys SHOULD be considered active to receive out-of-order messages. The recipient SHOULD store messages that it cannot match message IDs for.
 
 To protect against a Byzantine peer flooding its connections with a large number of keys, it is RECOMMENDED that the keys have a TTL, be stored in a fixed-size LIFO queue, or both.
 
