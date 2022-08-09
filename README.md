@@ -112,7 +112,8 @@ AWAKE uses [HKDF](https://datatracker.ietf.org/doc/html/rfc5869) to derive keys.
 // JS-flavored Pseudocode
 
 const ecdhSecret = ecdh(aliceSk, bobPk)
-const pseduorandomBits = hkdf.generateBits({ecdh, salt: ________, info: "awake", bitLength: 256 + 256 + 12})
+const awakeTag = 0x4157414B452D5543414E // "AWAKE-UCAN" as hex
+const pseudorandomBits = hkdf.generateBits({ecdh, salt: currentSecret, info: awakeTag, bitLength: 256 + 256 + 12})
 const [aesKey, nextSecret, iv] = pseudorandomBits.splitKeysAndIv()
 ```
 
@@ -124,17 +125,9 @@ The [ECDH](https://en.wikipedia.org/wiki/Elliptic-curve_Diffie%E2%80%93Hellman) 
 
 The secret chain MUST be update at each step by concatenating the secret generated at the previous step with the current ECDH output, and hashed with 256-bit SHA2. This new secret MUST be used as the input secret for the next message. Note that due to out-of-order message delivery, this secret MAY be used in up to one sent and one received message.
 
-### 1.4.3.3 HKDF
-
-FIXME params
-
-### 1.4.3.4 Output Message Key
+### 1.4.3.3 Output Message Key
 
 The one-time message key MUST be unique for every message since one Diffie-Hellman key with have changed, and the secret is updated per send or receipt.
-
-### 1.4.3.5 Output Initialization Vector
-
-FIXME
 
 ## 2 Sequence
 
@@ -405,18 +398,18 @@ The Requestor MUST provide the proof of authorization set by the Responder paylo
 
 This message MUST be encrypted with the first AES output of the AWAKE [KDF](#143-key-derivation), using the initial chain secret established in [§3.3](#33-responder-establishes-point-to-point-session).
 
-| Field  | Value                                       | Description                                                    | Required |
-| ------ | ------------------------------------------- | -------------------------------------------------------------- | -------- |
-| `awv`  | `"0.1.0"`                                   | AWAKE message version                                          | Yes      |
-| `type` | `"awake/msg"`                               | Generic AWAKE message type                                     | Yes      |
-| `id`   | `sha2_256(reqStep2EcdhPk + resStep3EcdhPk)` | Message ID                                                     | Yes      |
-| `msg`  |                                             | Fulfilled challenge payload encrypted with AES-derived AES key | Yes      |
+| Field  | Value                                     | Description                                                    | Required |
+| ------ | ----------------------------------------- | -------------------------------------------------------------- | -------- |
+| `awv`  | `"0.1.0"`                                 | AWAKE message version                                          | Yes      |
+| `type` | `"awake/msg"`                             | Generic AWAKE message type                                     | Yes      |
+| `id`   | `sha256(reqStep2EcdhPk + resStep3EcdhPk)` | Message ID                                                     | Yes      |
+| `msg`  |                                           | Fulfilled challenge payload encrypted with AES-derived AES key | Yes      |
 
 ``` javascript
 {
   "awv": "0.1.0",
   "type": "awake/msg",
-  "id": sha2_256(reqStep2EcdhPk + resStep3EcdhPk),
+  "id": sha256(reqStep2EcdhPk + resStep3EcdhPk),
   "msg": encryptedChallenge
 }
 ```
@@ -427,10 +420,10 @@ Out-of-band PIN challenges are most useful when the Requestor would not be able 
 
 The PIN values MUST be within the UTF-8 character set. The PIN MUST be included in the `pin` field. It is RECOMMENDED that the PIN be restricted to human-readable characters, and 4 to 10 characters long. If a very long challenge is required, it is RECOMMENDED that the SHA2 hash of the challenge be used rather than putting a large challenge over the wire.
 
-| Field  | Value                                                      | Description                 | Required |
-| ------ | ---------------------------------------------------------- | --------------------------- | -------- |
-| `did`  |                                                            | "Actual" Requestor DID      | Yes      |
-| `sig`  | `sign(requestorPK, sha2_256(responderDid + outOfBandPin))` | Signature of challenge hash | Yes      |
+| Field  | Value                                                    | Description                 | Required |
+| ------ | -------------------------------------------------------- | --------------------------- | -------- |
+| `did`  |                                                          | "Actual" Requestor DID      | Yes      |
+| `sig`  | `sign(requestorPK, sha256(responderDid + outOfBandPin))` | Signature of challenge hash | Yes      |
 
 ```javascript
 {
@@ -477,12 +470,12 @@ Requestor                  Responder
 
 ### 3.5.1 Payload
 
-| Field  | Value                             | Description                                                    | Required |
-| ------ | --------------------------------- | -------------------------------------------------------------- | -------- |
-| `awv`  | `"0.1.0"`                         | AWAKE message version                                          | Yes      |
-| `type` | `"awake/msg"`                     | Generic AWAKE message type                                     | Yes      |
-| `id`   | `sha2_256(resEcdhPk + reqEcdhPk)` | Message ID                                                     | Yes      |
-| `msg`  |                                   | Fulfilled challenge payload encrypted with Step 4 ECDH AES-key | Yes      |
+| Field  | Value                           | Description                                                    | Required |
+| ------ | ------------------------------- | -------------------------------------------------------------- | -------- |
+| `awv`  | `"0.1.0"`                       | AWAKE message version                                          | Yes      |
+| `type` | `"awake/msg"`                   | Generic AWAKE message type                                     | Yes      |
+| `id`   | `sha256(resEcdhPk + reqEcdhPk)` | Message ID                                                     | Yes      |
+| `msg`  |                                 | Fulfilled challenge payload encrypted with Step 4 ECDH AES-key | Yes      |
 
 #### 3.5.1.1 Encrypted Message
 
@@ -509,13 +502,13 @@ Requestor                  Responder
 
 Messages sent over an established AWAKE session MUST contain the following keys:
  
-| Field  | Value                                                 | Description                                                    | Required |
-| ------ | ----------------------------------------------------- | -------------------------------------------------------------- | -------- |
-| `awv`  | `"0.1.0"`                                             | AWAKE message version                                          | Yes      |
-| `type` | `"awake/msg"`                                         | Generic AWAKE message type                                     | Yes      |
-| `mid`  | `sha2_256(latestSenderEcdhPk + latestReceiverEcdhPk)` | Message ID                                                     | Yes      |
-| `sid`  | `sha2_256(firstAesKey)`                               | Session ID                                                     | No       |
-| `msg`  |                                                       | Fulfilled challenge payload encrypted with latest KDF AES-key  | Yes      |
+| Field  | Value                                               | Description                                                    | Required |
+| ------ | --------------------------------------------------- | -------------------------------------------------------------- | -------- |
+| `awv`  | `"0.1.0"`                                           | AWAKE message version                                          | Yes      |
+| `type` | `"awake/msg"`                                       | Generic AWAKE message type                                     | Yes      |
+| `mid`  | `sha256(latestSenderEcdhPk + latestReceiverEcdhPk)` | Message ID                                                     | Yes      |
+| `sid`  | `sha256(firstAesKey)`                               | Session ID                                                     | No       |
+| `msg`  |                                                     | Fulfilled challenge payload encrypted with latest KDF AES-key  | Yes      |
 
 Additional cleartext keys MAY be used, but are NOT RECOMMENDED since they can leak information about your session or the payload. Encrypted payloads MAY be padded with random noise or broken across multiple messages to prevent certain kinds of metadata leakage.
 
@@ -542,7 +535,7 @@ Additional fields MAY be included to contain further payload.
 Since every message's KDF has at least one unique ECDH key, and at most two messages MAY use the same secret in a strict order, the message sequence number is uniquely determined by the latest exchanged ECDH public keys. The exact format MUST be the 256-bit SHA2 of the sender and receiver's ECDH public keys.
 
 ``` javascript
-msgId = sha2_256(latestSenderEcdhPk + latestReceiverEcdhPk)
+msgId = sha256(latestSenderEcdhPk + latestReceiverEcdhPk)
 ```
 
 The recipient SHOULD calculate the next possible message IDs, based on known keys. Unless a synchronous protocol is being explicitly used, some number of previous keys SHOULD be considered active to receive out-of-order messages. The recipient SHOULD store messages that it cannot match message IDs for.
@@ -551,7 +544,18 @@ To protect against a Byzantine peer flooding its connections with a large number
 
 ## 4.2 Session ID
 
-As out-of-order messages can lead to a large number of messages, an OPTIONAL session ID based on the SHA2 hash of the first KDF output secret (`sha2_256(newSecret)`) MAY be used during the message phase of AWAKE, but moving to a message channel (such as a unique pubsub topic) is RECOMMENDED as it provides the same function with less noise.
+As out-of-order messages can lead to a large number of messages, an OPTIONAL session ID based on the SHA2 hash of the first KDF output secret (`sha256(newSecret)`) MAY be used during the message phase of AWAKE, but moving to a message channel (such as a unique pubsub topic) is RECOMMENDED as it provides the same function with less noise.
+
+## 4.3 Ratchets
+
+This stage MUST include the generation of sending and receiving chains from the HKDF
+
+
+FIXME add this from doble ratchet
+
+
+
+
 
 # 5 Disconnection
 
@@ -628,7 +632,7 @@ AWAKE may adopt MLS features in the future as it becomes more mature, but today 
 
 ## 7.5 Signal Protocol
 
-The [Signal Protocol](https://github.com/signalapp/libsignal) influenced the design of AWAKE. Signal is extremely widely deployed, having been included in WhatsApp, Android Messages, the Signal app, and others.
+The [Signal Protocol](https://github.com/signalapp/libsignal) heavily influenced the design of AWAKE. Signal is widely deployed, having been included in WhatsApp, Android Messages, the Signal app, and others.
 
 Signal's deployment targets have complete control over their cryptographic stack, and makes use of algorithms like 3XDH based on Curve25519. The AWAKE threat model includes browser application security that requires non-extractable keys, and at time of writing very few of these primitives are available.
 
