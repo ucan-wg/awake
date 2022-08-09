@@ -74,45 +74,34 @@ AWAKE uses a modified [Extended Triple Diffie-Hellman (X3DH)](https://www.signal
 Key derivation in AWAKE's double ratchet MUST use the following algorithm:
 
 ```
-         Diffie-Hellman          Secret                               One-Time
-            Ratchet               Chain                              Message Key
-┌──────────────┴─────────────┐  ┌───┴───┐                           ┌────┴────┐
+         Diffie-Hellman          Secret             One-Time
+            Ratchet               Chain             Outputs
+┌──────────────┴─────────────┐  ┌───┴───┐         ┌────┴────┐
  Alice's P-256    Bob's P-256    Current
    Private Key    Public Key     Secret
-            │      │             │  │
-            │      │             │  │
-      ┌─────┼──────┼─────────────┼──┼──────────────────────────┐
-      │     │      │             │  │                          │
-      │     │      │             │  │                          │
-      │     ▼      ▼             │  │                          │
-      │    ┌────────┐            │  │                          │
-      │    │        │            │  │                          │
-      │    │  ECDH  │            │  │                          │
-      │    │        │            │  │                          │
-      │    └────┬───┘      ┌─────┘  │                          │
-      │         │          │        │                          │
-      │         │          │        │                          │
-      │         ▼          │        ▼                          │
-      │    ┌─────────┐     │  ┌──────────┐     ┌───────────┐   │
-      │    │         │ 2/2 │  │          │     │           │   │     256-bit
-      │    │  Split  ├─────┼─►│  Concat  ├────►│  256-bit  ├───┼───► AES Key
-      │    │         │     │  │          │     │    SHA3   │   │      (OKM)
-      │    └────┬────┘     │  └──────────┘     │           │   │
-      │         │          │                   └───────────┘   │
-      │     1/2 │          │                                   │
-      │         │          └────────┐                          │
-      │         │                   │                          │
-      │         │                   ▼                          │
-      │         │             ┌──────────┐     ┌───────────┐   │
-      │         │             │          │     │           │   │
-      │         └────────────►│  Concat  ├────►│  256-bit  │   │
-      │                       │          │     │    SHA3   │   │
-      │                       └──────────┘     │           │   │
-      │                                        └─────┬─────┘   │
-      │                                              │         │
-      │                             ┌────────────────┘         │
-      │                             │                          │
-      └─────────────────────────────┼──────────────────────────┘
+            │      │                │
+            │      │                │
+      ┌─────┼──────┼────────────────┼────────┐
+      │     │      │                │        │
+      │     │      │                │        │
+      │     ▼      ▼                ▼        │
+      │    ┌────────┐          ┌────────┐    │
+      │    │        │          │        │    │
+      │    │  ECDH  ├─────────►│  HKDF  │    │
+      │    │        │          │        │    │
+      │    └────────┘          └────┬───┘    │
+      │                             │        │
+      │                             │        │
+      │                             ▼        │
+      │                        ┌─────────┐   │
+      │                        │         ├───┼───► Unique IV
+      │                        │  Split  │   │
+      │                        │         ├───┼───► AES-Key
+      │                        └────┬────┘   │      (OKM)
+      │                             │        │
+      │                             │        │
+      │                             │        │
+      └─────────────────────────────┼────────┘
                                     │
                                     │
                                     ▼
@@ -124,10 +113,8 @@ Key derivation in AWAKE's double ratchet MUST use the following algorithm:
 // JS-flavored Pseudocode
 
 const ecdhSecret = ecdh(aliceSk, bobPk)
-const [firstHalf, secondHalf] = ecdhSecret.split()
-
-nextSecret = sha3_256(currentSecret.concat(firstHalf))
-okm = sha3_256(currentSecret.concat(secondHalf))
+const pseduorandomBits = hkdf.generateBits({ecdh, salt: ____, info: ___, bitLength: 256 + 256 + 12}) // FIXME
+const [aes256, nextSecret, iv] = pseudorandomBits.splitIntoSegments(256)
 ```
 
 ### 1.4.3.1 ECDH Input
