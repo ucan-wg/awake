@@ -73,9 +73,9 @@ Each encrypted payload MUST include a unique (freshly generated) 12-byte [initia
 AWAKE uses [HKDF](https://datatracker.ietf.org/doc/html/rfc5869) to derive keys. Key derivation in AWAKE's double ratchet MUST use the following algorithm:
 
 ```
-         Diffie-Hellman          Secret             Message
-            Ratchet               Chain             Crypto
-┌──────────────┴─────────────┐  ┌───┴───┐         ┌────┴────┐
+         Diffie-Hellman          Secret                      Message
+            Ratchet               Chain                      Crypto
+┌──────────────┴─────────────┐  ┌───┴───┐                 ┌────┴────┐
  Alice's P-256    Bob's P-256    Current
    Private Key    Public Key     Secret
             │      │                │
