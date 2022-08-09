@@ -74,8 +74,8 @@ AWAKE uses a modified [Extended Triple Diffie-Hellman (X3DH)](https://www.signal
 Key derivation in AWAKE's double ratchet MUST use the following algorithm:
 
 ```
-         Diffie-Hellman          Secret             One-Time
-            Ratchet               Chain             Outputs
+         Diffie-Hellman          Secret             Message
+            Ratchet               Chain             Crypto
 ┌──────────────┴─────────────┐  ┌───┴───┐         ┌────┴────┐
  Alice's P-256    Bob's P-256    Current
    Private Key    Public Key     Secret
@@ -114,7 +114,7 @@ Key derivation in AWAKE's double ratchet MUST use the following algorithm:
 
 const ecdhSecret = ecdh(aliceSk, bobPk)
 const pseduorandomBits = hkdf.generateBits({ecdh, salt: ____, info: ___, bitLength: 256 + 256 + 12}) // FIXME
-const [aes256, nextSecret, iv] = pseudorandomBits.splitIntoSegments(256)
+const [aesKey, nextSecret, iv] = pseudorandomBits.splitIntoSegments(256)
 ```
 
 ### 1.4.3.1 ECDH Input
@@ -125,9 +125,17 @@ The [ECDH](https://en.wikipedia.org/wiki/Elliptic-curve_Diffie%E2%80%93Hellman) 
 
 The secret chain MUST be update at each step by concatenating the secret generated at the previous step with the current ECDH output, and hashed with 256-bit SHA3. This new secret MUST be used as the input secret for the next message. Note that due to out-of-order message delivery, this secret MAY be used in up to one sent and one received message.
 
-### 1.4.3.3 Output Message Key
+### 1.4.3.3 HKDF
+
+FIXME params
+
+### 1.4.3.4 Output Message Key
 
 The one-time message key MUST be unique for every message since one Diffie-Hellman key with have changed, and the secret is updated per send or receipt.
+
+### 1.4.3.5 Output Initialization Vector
+
+FIXME
 
 ## 2 Sequence
 
@@ -363,7 +371,6 @@ To start the Double Ratchet, the payload in this stage has the highest number of
 | `type` | `"awake/res"` | "Responder's Auth" step message type                                                     | Yes      |
 | `iss`  |               | Responder's ECDH P-256 DID                                                               | Yes      |
 | `aud`  |               | The ECDH P-256 DID signalled by the Requestor in [§3.2](#32-requestor-broadcasts-intent) | Yes      | 
-| `iv`   |               | Initialization vector for the encrypted `auth` payload                                   | Yes      |
 | `msg`  |               | AES-GCM-encrypted validation UCAN                                                        | Yes      |
 
 #### 3.3.3.1 JSON Example
@@ -374,7 +381,6 @@ To start the Double Ratchet, the payload in this stage has the highest number of
   "type": "awake/res",
   "iss": responderStep3EcdhDid,
   "aud": requestorStep2EcdhDid,
-  "iv": iv,
   "msg": encryptedUcan 
 }
 ```
@@ -405,7 +411,6 @@ This message MUST be encrypted with the first AES output of the AWAKE [KDF](#143
 | `awv`  | `"0.1.0"`                                   | AWAKE message version                                          | Yes      |
 | `type` | `"awake/msg"`                               | Generic AWAKE message type                                     | Yes      |
 | `id`   | `sha3_256(reqStep2EcdhPk + resStep3EcdhPk)` | Message ID                                                     | Yes      |
-| `iv`   |                                             | Initialization vector for the encrypted payload                | Yes      |
 | `msg`  |                                             | Fulfilled challenge payload encrypted with AES-derived AES key | Yes      |
 
 ``` javascript
@@ -413,7 +418,6 @@ This message MUST be encrypted with the first AES output of the AWAKE [KDF](#143
   "awv": "0.1.0",
   "type": "awake/msg",
   "id": sha3_256(reqStep2EcdhPk + resStep3EcdhPk),
-  "iv": iv,
   "msg": encryptedChallenge
 }
 ```
@@ -479,7 +483,6 @@ Requestor                  Responder
 | `awv`  | `"0.1.0"`                         | AWAKE message version                                          | Yes      |
 | `type` | `"awake/msg"`                     | Generic AWAKE message type                                     | Yes      |
 | `id`   | `sha3_256(resEcdhPk + reqEcdhPk)` | Message ID                                                     | Yes      |
-| `iv`   |                                   | Initialization vector for the encrypted payload                | Yes      |
 | `msg`  |                                   | Fulfilled challenge payload encrypted with Step 4 ECDH AES-key | Yes      |
 
 #### 3.5.1.1 Encrypted Message
@@ -513,7 +516,6 @@ Messages sent over an established AWAKE session MUST contain the following keys:
 | `type` | `"awake/msg"`                                         | Generic AWAKE message type                                     | Yes      |
 | `mid`  | `sha3_256(latestSenderEcdhPk + latestReceiverEcdhPk)` | Message ID                                                     | Yes      |
 | `sid`  | `sha3_256(firstAesKey)`                               | Session ID                                                     | No       |
-| `iv`   |                                                       | Initialization vector for the encrypted payload                | Yes      |
 | `msg`  |                                                       | Fulfilled challenge payload encrypted with latest KDF AES-key  | Yes      |
 
 Additional cleartext keys MAY be used, but are NOT RECOMMENDED since they can leak information about your session or the payload. Encrypted payloads MAY be padded with random noise or broken across multiple messages to prevent certain kinds of metadata leakage.
