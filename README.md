@@ -113,7 +113,7 @@ AWAKE uses [HKDF](https://datatracker.ietf.org/doc/html/rfc5869) to derive keys.
 
 const ecdhSecret = ecdh(aliceSk, bobPk)
 const awakeTag = 0x4157414B452D5543414E // "AWAKE-UCAN" as hex
-const pseudorandomBits = hkdf.generateBits({ecdh, salt: currentSecret, info: awakeTag, bitLength: 256 + 256 + 12})
+const pseudorandomBits = hkdf.generateBits({ecdh, salt: currentSecret, info: awakeTag, bitLength: 256 + 256 + 96})
 const [aesKey, nextSecret, iv] = pseudorandomBits.splitKeysAndIv()
 ```
 
