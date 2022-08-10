@@ -175,7 +175,7 @@ The [ECDH](https://en.wikipedia.org/wiki/Elliptic-curve_Diffie%E2%80%93Hellman) 
 
 #### 1.5.1.2 Secret Input
 
-The updated secret MUST be generated from the first 32-bytes of the KHDF output. This new secret MUST be used as the input secret for the next message. Note that due to out-of-order message delivery, this secret MAY be used in up to one sent and one received message.
+The updated secret MUST be generated from the first 32-bytes of the HKDF output. This new secret MUST be used as the input secret for the next message. Note that due to out-of-order message delivery, this secret MAY be used in up to one sent and one received message.
 
 #### 1.5.1.3 Output Message Key
 
@@ -187,7 +187,7 @@ This key MUST be used to start the sender's Sending Chain, and the recipient's R
 
 #### 1.5.1.4 Initialization Vector Output
 
-Each message uses a unique initialization vector genearted from the last 12-bytes of the HKDF output.
+Each message uses a unique initialization vector generated from the last 12-bytes of the HKDF output.
 
 ### 1.5.2 Chain Step
 
