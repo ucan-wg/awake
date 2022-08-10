@@ -43,8 +43,6 @@ This document contains shorthand (especially in diagrams) and nuanced senses of 
 
 Payloads are encoding agnostic, but JSON is RECOMMENDED. For JSON, any fields that contain non-JSON values (such as ECDH public keys and encryption payloads) MUST be serialized as unpadded [Base64](https://datatracker.ietf.org/doc/html/rfc4648).
 
-Messages that a peer cannot parse SHOULD be ignored.
-
 All payloads MUST include the "AWAKE version" field `awv: "0.1.0"`. Payloads MUST also include a message type field `type` (see each stage for the value). All field keys and message type values MUST be lowercase and treated as case-sensitive.
 
 | Field  | Value          | Description           | Required |
@@ -228,7 +226,7 @@ SHA-512 will generate more bytes than are required. The unused trailing bytes MU
 
 ``` javascript
 // JS-flavored Pseudocode
-const [secret, iv, _] = sha2_512(currentSecret).splitKeyAndIv()
+const [nextSecret, iv, _] = sha2_512(currentSecret).splitKeyAndIv()
 ```
 
 ### 1.5.2.1 Initialization
