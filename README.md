@@ -33,8 +33,10 @@ This document contains shorthand (especially in diagrams) and nuanced senses of 
 | Attacker  | A malicious third party attempting to gain access to the channel |
 | ECDH      | Elliptic Curve Diffie-Hellman                                    |
 | PK        | Public key                                                       |
+| Receiver  | The agent receiving a particular message                         |
 | Requestor | The agent opening the session                                    |
 | Responder | The agent being contacted by the Requestor                       |
+| Sender    | The agent sending a particular message                           |
 | SK        | Secret (private) key                                             |
 
 ## 1.2 Payload Fields
@@ -68,9 +70,57 @@ All symmetric encryption in AWAKE MUST use [256-bit AES-GCM](https://csrc.nist.g
 
 Each encrypted payload MUST include a unique (freshly generated) 12-byte [initialization vector](https://en.wikipedia.org/wiki/Initialization_vector).
 
-### 1.4.3 Key Derivation
+### 1.4.3 Diffie-Hellman Key Derivation
 
-AWAKE uses [HKDF](https://datatracker.ietf.org/doc/html/rfc5869) to derive keys. Key derivation in AWAKE's double ratchet MUST use the following algorithm:
+AWAKE uses [HKDF](https://datatracker.ietf.org/doc/html/rfc5869) to derive keys. Key derivation in AWAKE's double ratchet MUST use the following algorithms:
+
+## 1.5 Double Ratchet
+
+The Double Ratchet conceptual has three ratchets: a Diffie-Hellman (asymmetric) ratchet, and two chain ratchets: a Sending Chain (encryption) and a Receiving Chain (decryption).
+
+The Sending Chain of the Requestor MUST always match the Receiving Chain of the Responder, and vice versa. The Diffied-Hellman ratchet is used to start a new epoch for the chain ratchets, "resetting" them with fresh starting values.
+
+The derivation of these is described in s1.5.1 and s1.5.2 (FIXME)
+
+```
+       ┌──────────────┐
+       │              │
+       │  DH Ratchet  │
+       │              │
+       └─┬──────────┬─┘
+         │          │
+         │          │
+         ▼          ▼
+┌───────────┐    ┌─────────────┐
+│           │    │             │
+│  Sending  │    │  Receiving  │
+│  Chain 0  │    │   Chain 0   │
+│           │    │             │
+└────────┬──┘    └──┬──────────┘
+         │          │
+         │          │
+         ▼          ▼
+┌───────────┐    ┌─────────────┐
+│           │    │             │
+│  Sending  │    │  Receiving  │
+│  Chain 1  │    │   Chain 1   │
+│           │    │             │
+└────────┬──┘    └──┬──────────┘
+         │          │
+         │          │
+         ▼          ▼
+┌───────────┐    ┌─────────────┐
+│           │    │             │
+│  Sending  │    │  Receiving  │
+│  Chain 2  │    │   Chain 2   │
+│           │    │             │
+└───────────┘    └─────────────┘
+         ⋮          ⋮
+         ⋮          ⋮
+         ▼          ▼
+```
+
+### 1.5.1 Diffie-Hellman Step
 
 ```
          Diffie-Hellman          Secret                      Message
@@ -117,23 +167,75 @@ const pseudorandomBits = hkdf.generateBits({ecdh, salt: currentSecret, info: awa
 const [aesKey, nextSecret, iv] = pseudorandomBits.splitKeysAndIv()
 ```
 
-#### 1.4.3.1 ECDH Input
+### 1.5.1.1 ECDH Input
 
 The [ECDH](https://en.wikipedia.org/wiki/Elliptic-curve_Diffie%E2%80%93Hellman) secret MUST be generated using [NIST P-256 elliptic curve](https://neuromancer.sk/std/nist/P-256) curve (AKA `secp256r1`). Non-extractable P-256 keys SHOULD be used where available (e.g. via the [WebCrypto API](https://developer.mozilla.org/en-US/docs/Web/API/SubtleCrypto/generateKey)).The sender MUST rotate their public key on every send. This does mean that in the [message phase](#4-secure-session), multiple keys MAY be valid due to concurrency and out-of-order message delivery. 
 
-#### 1.4.3.2 Secret Input
+#### 1.5.1.2 Secret Input
 
 The updated secret MUST be generated from the first 32-bytes of the KHDF output. This new secret MUST be used as the input secret for the next message. Note that due to out-of-order message delivery, this secret MAY be used in up to one sent and one received message.
 
-#### 1.4.3.3 Output Message Key
+#### 1.5.1.3 Output Message Key
 
 The one-time message key MUST be unique for every message since one Diffie-Hellman key with have changed, and the secret is updated per send or receipt.
 
 This key MUST be generated from the second 32-byte segment of the HKDF output.
 
-#### 1.4.3.4 Initialization Vector Output
+This key MUST be used to start the sender's Sending Chain, and the recipient's Receiving Chain.
+
+#### 1.5.1.4 Initialization Vector Output
 
 Each message uses a unique initialization vector genearted from the last 12-bytes of the HKDF output.
+
+### 1.5.2 Chain Step
+
+**Note: this step MUST NOT be used during the AWAKE handshake.**
+
+Incrementing a chain step MUST be done using the HDKF function. The Sender Chain is derived from the first OKM in the Diffie-Hellman Step, and the Receiver Chain is derived from the Diffie-Hellman Step output secret, but the mechanism is otherwise identical.
+
+The HKDF MUST return 352 bits: one 256-bit secret, and one 96-bit IV.
+
+```
+    Current
+    Secret
+       │
+       │
+       ▼
+  ┌────────┐
+  │        │
+  │  HKDF  │
+  │        │
+  └────┬───┘
+       │
+       │
+       ▼
+  ┌─────────┐
+  │         │
+  │  Split  ├──────────► Unique IV
+  │         │  256-351
+  └────┬────┘
+       │
+       │ 0-255 
+       │
+       ▼
+     Next
+    Secret
+```
+
+``` javascript
+// JS-flavored Pseudocode
+
+const awakeTag = 0x4157414B452D5543414E // "AWAKE-UCAN" as hex
+const pseudorandomBits = hkdf.generateBits({currentEcdh, salt: NULL, info: currentSecret + awakeTag, bitLength: 256 + 96})
+const [aesKey, nextSecret, iv] = pseudorandomBits.splitKeysAndIv()
+```
+
+https://soatok.blog/2021/11/17/understanding-hkdf/
+
+#### 1.5.2.1 Initialization
+
+The initial 
+
 
 ## 2 Sequence
 
@@ -508,35 +610,17 @@ Requestor                  Responder
 
 Messages sent over an established AWAKE session MUST contain the following keys:
  
-| Field  | Value                                               | Description                                                    | Required |
-| ------ | --------------------------------------------------- | -------------------------------------------------------------- | -------- |
-| `awv`  | `"0.1.0"`                                           | AWAKE message version                                          | Yes      |
-| `type` | `"awake/msg"`                                       | Generic AWAKE message type                                     | Yes      |
-| `mid`  | `sha256(latestSenderEcdhPk + latestReceiverEcdhPk)` | Message ID                                                     | Yes      |
-| `sid`  | `sha256(firstAesKey)`                               | Session ID                                                     | No       |
-| `msg`  |                                                     | Fulfilled challenge payload encrypted with latest KDF AES-key  | Yes      |
+| Field  | Value                                                              | Description                                                    | Required |
+| ------ | ------------------------------------------------------------------ | -------------------------------------------------------------- | -------- |
+| `awv`  | `"0.1.0"`                                                          | AWAKE message version                                          | Yes      |
+| `type` | `"awake/msg"`                                                      | Generic AWAKE message type                                     | Yes      |
+| `mid`  | `sha256(latestSenderEcdhPk + latestReceiverEcdhPk + messageCount)` | Message ID                                                     | Yes      |
+| `sid`  | `sha256(firstAesKey)`                                              | Session ID                                                     | No       |
+| `msg`  |                                                                    | Fulfilled challenge payload encrypted with latest KDF AES-key  | Yes      |
 
 Additional cleartext keys MAY be used, but are NOT RECOMMENDED since they can leak information about your session or the payload. Encrypted payloads MAY be padded with random noise or broken across multiple messages to prevent certain kinds of metadata leakage.
 
-### 4.1 Encrypted Field Keys
-
-Every encrypted payload (`msg`) MUST include a `awake/nextdid` field, updating the public key of the sender for the next message(s). This continues the Double Ratchet and updates the AES key that will be used for successive messages.
-
-Additional fields MAY be included to contain further payload.
-
-| Field           | Description                                                          | Required |
-| --------------- | -------------------------------------------------------------------- | -------- |
-| `awake/nextdid` | The next ECDH public key for the sender, formatted as a `did:key`    | Yes      |
-
-``` javascript
-// JSON encoded
-{
-  ...,
-  "awake/nextdid": sendersNextEcdhDid
-}
-```
-
-## 4.3 Message ID
+## 4.1 Message ID
 
 Since every message's KDF has at least one unique ECDH key, and at most two messages MAY use the same secret in a strict order, the message sequence number is uniquely determined by the latest exchanged ECDH public keys. The exact format MUST be the 256-bit SHA2 of the sender and receiver's ECDH public keys.
 
@@ -548,11 +632,42 @@ The recipient SHOULD calculate the next possible message IDs, based on known key
 
 To protect against a Byzantine peer flooding its connections with a large number of keys, it is RECOMMENDED that the keys have a TTL, be stored in a fixed-size LIFO queue, or both.
 
+
+
+
+
+
+FIXME
+
+
+
+
+
 ## 4.2 Session ID
 
 As out-of-order messages can lead to a large number of messages, an OPTIONAL session ID based on the SHA2 hash of the first KDF output secret (`sha256(newSecret)`) MAY be used during the message phase of AWAKE, but moving to a message channel (such as a unique pubsub topic) is RECOMMENDED as it provides the same function with less noise.
 
-## 4.3 Ratchets
+### 4.3 Encrypted Field Keys
+
+The encrypted payload (`msg`) MAY include an `awake/nextdid` field. This continues the Double Ratchet at the Diffie-Hellman step, and updates the send & receiev ratchets for successive messages.
+
+Additional fields MAY be included to contain further payload.
+
+| Field           | Value | Description                                                       | Required |
+| --------------- | ----- | ----------------------------------------------------------------- | -------- |
+| `awake/nextdid` |       | The next ECDH public key for the sender, formatted as a `did:key` | No       |
+
+``` javascript
+// JSON encoded
+{
+  ...,
+  "awake/nextdid": sendersNextEcdhDid
+}
+```
+
+## 4.3 Out-of-Order Messages
+
+Out-of-order messages MAY be supported by allowing multiple ratchets of the send and receive ratchets between Diffie-Hellman steps. If enabled, the `awake/stepid` field MUST be set.
 
 This stage MUST include the generation of sending and receiving chains from the HKDF
 
