@@ -76,11 +76,9 @@ AWAKE uses [HKDF](https://datatracker.ietf.org/doc/html/rfc5869) to derive keys.
 
 ## 1.5 Double Ratchet
 
-The Double Ratchet conceptual has three ratchets: a Diffie-Hellman (asymmetric) ratchet, and two chain ratchets: a Sending Chain (encryption) and a Receiving Chain (decryption).
+The Double Ratchet conceptually consists of three ratchets: a Diffie-Hellman (asymmetric) ratchet, and two chain ratchets: a Sending Chain (encryption) and a Receiving Chain (decryption).
 
-The Sending Chain of the Requestor MUST always match the Receiving Chain of the Responder, and vice versa. The Diffied-Hellman ratchet is used to start a new epoch for the chain ratchets, "resetting" them with fresh starting values.
-
-The derivation of these is described in s1.5.1 and s1.5.2 (FIXME)
+The Sending Chain of the Requestor MUST always match the Receiving Chain of the Responder, and vice versa. The Diffie-Hellman ratchet is used to start a new epoch for the chain ratchets, "resetting" them with fresh starting values.
 
 ```
        High-Level Sketch
@@ -615,39 +613,23 @@ Messages sent over an established AWAKE session MUST contain the following keys:
 | `awv`  | `"0.1.0"`                                                          | AWAKE message version                                          | Yes      |
 | `type` | `"awake/msg"`                                                      | Generic AWAKE message type                                     | Yes      |
 | `mid`  | `sha256(latestSenderEcdhPk + latestReceiverEcdhPk + messageCount)` | Message ID                                                     | Yes      |
-| `sid`  | `sha256(firstAesKey)`                                              | Session ID                                                     | No       |
 | `msg`  |                                                                    | Fulfilled challenge payload encrypted with latest KDF AES-key  | Yes      |
 
 Additional cleartext keys MAY be used, but are NOT RECOMMENDED since they can leak information about your session or the payload. Encrypted payloads MAY be padded with random noise or broken across multiple messages to prevent certain kinds of metadata leakage.
 
 ## 4.1 Message ID
 
-Since every message's KDF has at least one unique ECDH key, and at most two messages MAY use the same secret in a strict order, the message sequence number is uniquely determined by the latest exchanged ECDH public keys. The exact format MUST be the 256-bit SHA2 of the sender and receiver's ECDH public keys.
+Since every message's KDF has at least one unique ECDH key, and at most two messages MAY use the same secret in a strict order, the message sequence number is uniquely determined by the latest exchanged ECDH public keys. The exact format MUST be the 256-bit SHA2 of the sender and receiver's ECDH public keys and the message count in this Diffie-Hellman epoch.
 
 ``` javascript
-msgId = sha256(latestSenderEcdhPk + latestReceiverEcdhPk)
+msgId = sha256(latestSenderEcdhPk + latestReceiverEcdhPk + messageCount)
 ```
 
-The recipient SHOULD calculate the next possible message IDs, based on known keys. Unless a synchronous protocol is being explicitly used, some number of previous keys SHOULD be considered active to receive out-of-order messages. The recipient SHOULD store messages that it cannot match message IDs for.
+The recipient SHOULD calculate the next possible message IDs, based on known keys. Unless a synchronous protocol is explicitly used, some number of previous keys SHOULD be considered active to receive out-of-order messages. The recipient SHOULD store messages that it cannot match message IDs for.
 
 To protect against a Byzantine peer flooding its connections with a large number of keys, it is RECOMMENDED that the keys have a TTL, be stored in a fixed-size LIFO queue, or both.
 
-
-
-
-
-
-FIXME
-
-
-
-
-
-## 4.2 Session ID
-
-As out-of-order messages can lead to a large number of messages, an OPTIONAL session ID based on the SHA2 hash of the first KDF output secret (`sha256(newSecret)`) MAY be used during the message phase of AWAKE, but moving to a message channel (such as a unique pubsub topic) is RECOMMENDED as it provides the same function with less noise.
-
-### 4.3 Encrypted Field Keys
+### 4.2 Encrypted Field Keys
 
 The encrypted payload (`msg`) MAY include an `awake/nextdid` field. This continues the Double Ratchet at the Diffie-Hellman step, and updates the send & receiev ratchets for successive messages.
 
@@ -664,19 +646,6 @@ Additional fields MAY be included to contain further payload.
   "awake/nextdid": sendersNextEcdhDid
 }
 ```
-
-## 4.3 Out-of-Order Messages
-
-Out-of-order messages MAY be supported by allowing multiple ratchets of the send and receive ratchets between Diffie-Hellman steps. If enabled, the `awake/stepid` field MUST be set.
-
-This stage MUST include the generation of sending and receiving chains from the HKDF
-
-
-FIXME add this from doble ratchet
-
-
-
-
 
 # 5 Disconnection
 
