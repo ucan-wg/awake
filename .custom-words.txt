@@ -11,6 +11,7 @@ DIDs
 Diffie
 ECDH
 GCM
+HKDF
 Holmgren
 IKEv
 IPsec
@@ -44,10 +45,13 @@ WhatsApp
 WireGuard
 XDH
 Zelenka
+aesKey
 aliceSk
 att
 aud
 auth
+awakeTag
+bitLength
 bobPk
 cleartext
 concat
@@ -59,6 +63,8 @@ ecdhSecret
 extractable
 fct
 firstHalf
+generateBits
+hkdf
 hoc
 iss
 javascript
@@ -69,12 +75,14 @@ nextSecret
 okm
 pre
 prf
+pseudorandomBits
 pubsub
 requestor
 requestor's
 secondHalf
 sha
 signalled
+splitKeysAndIv
 trustless
 unpadded
 unrevoked

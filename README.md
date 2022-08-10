@@ -629,7 +629,7 @@ To protect against a Byzantine peer flooding its connections with a large number
 
 ### 4.2 Encrypted Field Keys
 
-The encrypted payload (`msg`) MAY include an `awake/nextdid` field. This continues the Double Ratchet at the Diffie-Hellman step, and updates the send & receiev ratchets for successive messages.
+The encrypted payload (`msg`) MAY include an `awake/nextdid` field. This continues the Double Ratchet at the Diffie-Hellman step, and updates the send & receive ratchets for successive messages.
 
 Additional fields MAY be included to contain further payload.
 
