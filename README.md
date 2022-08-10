@@ -83,6 +83,12 @@ The Sending Chain of the Requestor MUST always match the Receiving Chain of the 
 The derivation of these is described in s1.5.1 and s1.5.2 (FIXME)
 
 ```
+       High-Level Sketch
+        Double Ratchet
+
+               ⋮
+               ⋮
+               ▼
        ┌──────────────┐
        │              │
        │  DH Ratchet  │
@@ -189,53 +195,47 @@ Each message uses a unique initialization vector genearted from the last 12-byte
 
 ### 1.5.2 Chain Step
 
-**Note: this step MUST NOT be used during the AWAKE handshake.**
+**Note: This step MUST NOT be used during the AWAKE handshake.**
 
-Incrementing a chain step MUST be done using the HDKF function. The Sender Chain is derived from the first OKM in the Diffie-Hellman Step, and the Receiver Chain is derived from the Diffie-Hellman Step output secret, but the mechanism is otherwise identical.
+Incrementing a chain step MUST be done by applying SHA-512 to the previous key or Diffie-Hellman KDF-generated secret.
 
-The HKDF MUST return 352 bits: one 256-bit secret, and one 96-bit IV.
+SHA-512 will generate more bytes than are required. The unused trailing bytes MUST be discarded.
 
 ```
-    Current
-    Secret
-       │
-       │
-       ▼
-  ┌────────┐
-  │        │
-  │  HKDF  │
-  │        │
-  └────┬───┘
-       │
-       │
-       ▼
-  ┌─────────┐
-  │         │
-  │  Split  ├──────────► Unique IV
-  │         │  256-351
-  └────┬────┘
-       │
-       │ 0-255 
-       │
-       ▼
-     Next
-    Secret
+     Current
+     Secret
+        │
+        │
+        ▼
+  ┌───────────┐
+  │           │
+  │  SHA-512  │
+  │           │
+  └─────┬─────┘
+        │
+        │
+        ▼
+   ┌─────────┐
+   │         │
+   │  Split  ├──────────► Unique IV
+   │         │  256-351
+   └────┬────┘
+        │
+        │ 0-255 
+        │
+        ▼
+      Next
+     Secret
 ```
 
 ``` javascript
 // JS-flavored Pseudocode
-
-const awakeTag = 0x4157414B452D5543414E // "AWAKE-UCAN" as hex
-const pseudorandomBits = hkdf.generateBits({currentEcdh, salt: NULL, info: currentSecret + awakeTag, bitLength: 256 + 96})
-const [aesKey, nextSecret, iv] = pseudorandomBits.splitKeysAndIv()
+const [secret, iv, _] = sha2_512(currentSecret).splitKeyAndIv()
 ```
 
-https://soatok.blog/2021/11/17/understanding-hkdf/
+### 1.5.2.1 Initialization
 
-#### 1.5.2.1 Initialization
-
-The initial 
-
+The Sender's Sending Chain MUST be derived from the first OKM in the Diffie-Hellman Step, and the Sender's Receiving Chain is derived from the Diffie-Hellman Step output secret. The mechanism is otherwise identical. The Receiver's chains MUST be identical to the Sender's, but with Sending/Receiving roles reversed.
 
 ## 2 Sequence
 
