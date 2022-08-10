@@ -193,7 +193,7 @@ Each message uses a unique initialization vector genearted from the last 12-byte
 
 **Note: This step MUST NOT be used during the AWAKE handshake.**
 
-Incrementing a chain step MUST be done by applying SHA-512 to the previous key or Diffie-Hellman KDF-generated secret.
+Ratcheting a chain MUST be done by applying SHA-512 to the previous key or Diffie-Hellman KDF-generated secret.
 
 SHA-512 will generate more bytes than are required. The unused trailing bytes MUST be discarded.
 
