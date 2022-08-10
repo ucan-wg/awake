@@ -117,17 +117,23 @@ const pseudorandomBits = hkdf.generateBits({ecdh, salt: currentSecret, info: awa
 const [aesKey, nextSecret, iv] = pseudorandomBits.splitKeysAndIv()
 ```
 
-### 1.4.3.1 ECDH Input
+#### 1.4.3.1 ECDH Input
 
 The [ECDH](https://en.wikipedia.org/wiki/Elliptic-curve_Diffie%E2%80%93Hellman) secret MUST be generated using [NIST P-256 elliptic curve](https://neuromancer.sk/std/nist/P-256) curve (AKA `secp256r1`). Non-extractable P-256 keys SHOULD be used where available (e.g. via the [WebCrypto API](https://developer.mozilla.org/en-US/docs/Web/API/SubtleCrypto/generateKey)).The sender MUST rotate their public key on every send. This does mean that in the [message phase](#4-secure-session), multiple keys MAY be valid due to concurrency and out-of-order message delivery. 
 
-### 1.4.3.2 Secret Input
+#### 1.4.3.2 Secret Input
 
-The secret chain MUST be update at each step by concatenating the secret generated at the previous step with the current ECDH output, and hashed with 256-bit SHA2. This new secret MUST be used as the input secret for the next message. Note that due to out-of-order message delivery, this secret MAY be used in up to one sent and one received message.
+The updated secret MUST be generated from the first 32-bytes of the KHDF output. This new secret MUST be used as the input secret for the next message. Note that due to out-of-order message delivery, this secret MAY be used in up to one sent and one received message.
 
-### 1.4.3.3 Output Message Key
+#### 1.4.3.3 Output Message Key
 
 The one-time message key MUST be unique for every message since one Diffie-Hellman key with have changed, and the secret is updated per send or receipt.
+
+This key MUST be generated from the second 32-byte segment of the HKDF output.
+
+#### 1.4.3.4 Initialization Vector Output
+
+Each message uses a unique initialization vector genearted from the last 12-bytes of the HKDF output.
 
 ## 2 Sequence
 
