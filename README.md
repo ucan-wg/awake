@@ -542,6 +542,8 @@ If UCAN auth is required by the Responder, the Requestor MUST provide a UCAN. Th
 
 The UCAN MUST be issued (`iss`) by the Requestor's DID (not the temporary DID), and its audience (`aud`) MUST be the Responder's DID. The `att` field MUST be set to an empty array (i.e. it MUST NOT delegate any capabilities). The `prf` array MUST fulfill the capabilities set by the Responder.
 
+This MAY be used to prove that the Requestor has the same capabilities that the Requestor required from Provider to start the handshake, such as when enforcing a minimum security clearance or between a single user's trusted devices.
+
 ```
               UCAN Auth
 
