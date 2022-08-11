@@ -171,7 +171,7 @@ const [aesKey, nextSecret, iv] = pseudorandomBits.splitKeysAndIv()
 
 ### 1.5.1.1 ECDH Input
 
-The [ECDH](https://en.wikipedia.org/wiki/Elliptic-curve_Diffie%E2%80%93Hellman) secret MUST be generated using [NIST P-256 elliptic curve](https://neuromancer.sk/std/nist/P-256) curve (AKA `secp256r1`). Non-extractable P-256 keys SHOULD be used where available (e.g. via the [WebCrypto API](https://developer.mozilla.org/en-US/docs/Web/API/SubtleCrypto/generateKey)).The sender MUST rotate their public key on every send. This does mean that in the [message phase](#4-secure-session), multiple keys MAY be valid due to concurrency and out-of-order message delivery. 
+The [ECDH](https://en.wikipedia.org/wiki/Elliptic-curve_Diffie%E2%80%93Hellman) secret MUST be generated using [NIST P-256 elliptic curve](https://neuromancer.sk/std/nist/P-256) curve (AKA `secp256r1`). Non-extractable P-256 keys SHOULD be used where available (e.g. via the [WebCrypto API](https://developer.mozilla.org/en-US/docs/Web/API/SubtleCrypto/generateKey)). The sender MUST rotate their public key on every send. This does mean that in the [message phase](#4-secure-session), multiple keys MAY be valid due to concurrency and out-of-order message delivery. 
 
 #### 1.5.1.2 Secret Input
 
@@ -179,7 +179,7 @@ The updated secret MUST be generated from the first 32-bytes of the HKDF output.
 
 #### 1.5.1.3 Output Message Key
 
-The one-time message key MUST be unique for every message since one Diffie-Hellman key with have changed, and the secret is updated per send or receipt.
+The one-time message key MUST be unique for every message since one Diffie-Hellman key will have changed, and the secret is updated per send or receipt.
 
 This key MUST be generated from the second 32-byte segment of the HKDF output.
 
@@ -370,40 +370,40 @@ In this step, the Responder MUST prove that they have access to the requested re
 
 This step starts the Double Ratchet. The Responder MUST generate a fresh ECDH P-256 key pair. This MUST be combined with the Requestor's ECDH public key to generate a 256-bit AES key, which MUST be used to encrypt the private payload. The Requestor SHOULD accept multiple concurrent connection attempts on this request DID, at least until the handshake is complete.
 
-The payload contains two encryption layers, and signature: the ECDH components, the AES envelope, and the capability proof signed by the Responder's "true" DID.
+The payload contains two encryption layers and a signature: the ECDH components, the AES envelope, and the capability proof signed by the Responder's "true" DID.
 
 The SHA2 hash of the AES key generated in this step MUST be used as the first [input secret in the KDF](#1432-secret-input).
 
 ```
-          Payload
+                 Payload
 
-     ┌──────ECDH─────┐
-     │               │
-     │  256-bit AES  │
-     │       │       │
-     └───────┼───────┘
-             │
-             ▼
-┌─────────AES-GCM─────────┐
-│                         │
-│  ┌────────UCAN───────┐  │
-│  │                   │  │
-│  │  iss: Responder   │  │
-│  │  aud: ReqECDH     │  │
-│  │  att: []          │  │
-│  │  fct: nextResECDH │  │
-│  │  prf: ...         │  │
-│  │                   │  │
-│  └───────────────────┘  │
-│                         │
-└─────────────────────────┘
+            ┌──────ECDH─────┐
+            │               │
+            │  256-bit AES  │
+            │       │       │
+            └───────┼───────┘
+                    │
+                    ▼
+┌────────────────AES-GCM───────────────┐
+│                                      │
+│  ┌──────────────UCAN──────────────┐  │
+│  │                                │  │
+│  │  iss: Responder                │  │
+│  │  aud: ReqECDH                  │  │
+│  │  att: []                       │  │
+│  │  fct: [nextResECDH, challenge] │  │
+│  │  prf: ...                      │  │
+│  │                                │  │
+│  └────────────────────────────────┘  │
+│                                      │
+└──────────────────────────────────────┘
 ```
 
-Upon receipt, the Requestor MUST validate that the UCAN capabilities fulfill their `caps` criteria. The UCAN itself MUST be valid, unrevoked, unexpired, and intended for the temporary DID (the `aud` field). If any of these checks fail, the session MUST be abandoned, the temporary DID regenerated, and the protocol restarted from [intention broadcast](#32-requestor-broadcasts-intent).
+Upon receipt, the Requestor MUST validate that the UCAN capabilities in the proof fulfill their `caps` criteria. The UCAN itself MUST be valid, unrevoked, unexpired, and intended for the temporary DID (the `aud` field). If any of these checks fail, the session MUST be abandoned, the temporary DID regenerated, and the protocol restarted from [intention broadcast](#32-requestor-broadcasts-intent).
 
 ### 3.3.1 Validation UCAN
 
-The validation UCAN MUST NOT be used to delegate any capabilities. This UCAN MUST only be used to prove access to capabilities and sign the AES key. The `att` and `my` fields MUST be empty arrays. The issuer (`iss`) field MUST contain the Responder's long-term DID (rather than the temporary ECDH DID). The audience (`aud`) field MUST contain the Requestor's temporary ECDH DID from [§3.2](#32-requestor-broadcasts-intent).
+The validation UCAN MUST NOT be used to delegate any capabilities. This UCAN MUST only be used to prove access to capabilities and sign the next ECDH public key. The `att` and `my` fields MUST be empty arrays. The issuer (`iss`) field MUST contain the Responder's long-term DID (rather than the temporary ECDH DID). The audience (`aud`) field MUST contain the Requestor's temporary ECDH DID from [§3.2](#32-requestor-broadcasts-intent).
 
 This UCAN MUST be encrypted with the [KDF-generated AES-GCM key](#143-key-derivation) plus IV before being placed into the payload in [§3.3.2](#332-payload).
 
@@ -520,7 +520,7 @@ This message MUST be encrypted with the first AES output of the AWAKE [KDF](#143
 
 #### 3.4.2.2 Out-of-Band PIN Challenge
 
-Out-of-band PIN challenges are most useful when the Requestor would not be able to provide UCAN validation, such as when signing into a new device that has not been delegated to yet. The PIN MUST be set by the Responder, and transmitted out of band. Some examples of out of band transmission include displaying text on screen, email, text message, or QR code.
+Out-of-band PIN challenges are most useful when the Requestor would not be able to provide UCAN validation, such as when signing into a new device that has not been delegated to yet. The PIN MUST be set by the Requestor, and transmitted out of band. Some examples of out of band transmission include displaying text on screen, email, text message, or QR code.
 
 The PIN values MUST be within the UTF-8 character set. The PIN MUST be included in the `pin` field. It is RECOMMENDED that the PIN be restricted to human-readable characters, and 4 to 10 characters long. If a very long challenge is required, it is RECOMMENDED that the SHA2 hash of the challenge be used rather than putting a large challenge over the wire.
 
@@ -710,7 +710,7 @@ IKE shares many commonalities with AWAKE, including making available of the same
 
 ## 7.3 WireGuard
 
-[WireGuard](https://www.wireguard.com/) is a VPN protocol that is widely deployed via the Linux kernel, and has since been ported to many other systems. It is UDP-based and aimed at raw performance and security. Being low-level, is unconstrained in which cryptographic primitives is uses (i.e. Curve25519).
+[WireGuard](https://www.wireguard.com/) is a VPN protocol that is widely deployed via the Linux kernel, and has since been ported to many other systems. It is UDP-based and aimed at raw performance and security. Being low-level, it is unconstrained in which cryptographic primitives is uses (i.e. Curve25519).
 
 ## 7.4 Message Layer Security (MLS)
 
