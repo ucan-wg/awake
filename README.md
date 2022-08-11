@@ -619,7 +619,7 @@ Additional cleartext keys MAY be used, but are NOT RECOMMENDED since they can le
 
 ## 4.1 Message ID
 
-Since every message's KDF has at least one unique ECDH key, and at most two messages MAY use the same secret in a strict order, the message sequence number is uniquely determined by the latest exchanged ECDH public keys. The exact format MUST be the 256-bit SHA2 of the sender and receiver's ECDH public keys and the message count in this Diffie-Hellman epoch.
+The deterministic and unique message ID MUST be the 256-bit SHA2 of the sender and receiver's ECDH public keys and the message count in this Diffie-Hellman epoch.
 
 ``` javascript
 msgId = sha256(latestSenderEcdhPk + latestReceiverEcdhPk + messageCount)
