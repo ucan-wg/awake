@@ -4,7 +4,7 @@
 
 The Code of Conduct is available in the repository in [CODE_OF_CONDUCT.md](./CODE_OF_CONDUCT.md).
 
-Contact for Code of Conduct issues or inquires: hello@brooklynzelenka.com, hello@fission.codes
+Contact for Code of Conduct issues or inquires: <hello@brooklynzelenka.com>, <hello@fission.codes>.
 
 ## License Acceptance
 
