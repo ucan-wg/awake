@@ -318,7 +318,6 @@ This temporary key MUST only be used for key exchange, and MUST NOT be used for 
     
 ### 3.2.2 Authorization Criteria
 
-The Requestor MAY also include validation criteria expected from the Responder. This MUST be passed as an array of [UCAN capabilities](https://github.com/ucan-wg/spec#23-capability). The Responder MUST be able to prove access to these capabilities in [§3.3](https://github.com/ucan-wg/awake/blob/port/README.md#33-responder-establishes-point-to-point-session).
 
 ### 3.2.3 Payload
 
@@ -564,7 +563,7 @@ This MAY be used to prove that the Requestor has the same capabilities that the 
 
 # 3.5 Responder Acknowledgment
 
-The Responder MUST respond with an acknowledgment that the challenge in [§3.4](#34-requestor-challenge) was accepted.
+The Responder MUST respond with an acknowledgment that the challenge in [§3.4](#34-requestor-challee) was accepted.
 
 ```
 Requestor                  Responder
