@@ -4,7 +4,7 @@
 
 The Code of Conduct is available in the repository in [CODE_OF_CONDUCT.md](./CODE_OF_CONDUCT.md).
 
-Contact for Code of Conduct issues or inquires: hello@brooklynzelenka.com, hello@fission.codes
+Contact for Code of Conduct issues or inquires: <hello@brooklynzelenka.com>, <hello@fission.codes>.
 
 ## License Acceptance
 
@@ -12,23 +12,16 @@ Per Community Specification License 1.0 Section 2.1.3.3, Licensees may indicate 
 
 A Licensee may consent to accepting the current Community Specification License version or any future version of the Community Specification License by indicating "or later" after their specification version.
 
----------------------------------------------------------------------------------
-
-Licensee’s name: Brooklyn Zelenka
-
-Authorized individual and system identifier: expede
-
-Specification version: 0.1.0 or later
-
----------------------------------------------------------------------------------
+| Licensee’s name: | Authorized individual and system identifier: | Specification version: |
+| --- | --- | --- |
+| Brooklyn Zelenka | @expede | 0.1.0 or later |
+| Matt Galligan | @galligan | 1.0 or later |
 
 ## Withdrawals
 
-Name of party withdrawing:
-
-Date of withdrawal:
-
----------------------------------------------------------------------------------
+| Name of party withdrawing: | Date of withdrawal: |
+| --- | --- |
+| … | … |
 
 ## Exclusions
 
