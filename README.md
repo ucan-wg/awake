@@ -306,7 +306,7 @@ Attacker                 Requestor                  Responder
    ⋮                         ⋮                          ⋮
 ```
 
-In this step, the Requestor broadcasts a temporary DID, and some criteria that a Responder MUST provide in [§3.3](https://github.com/ucan-wg/awake/blob/port/README.md#33-responder-establishes-point-to-point-session). Both pieces of information are sent in a single message. This request payload MUST contain the `did` and `caps` fields. The `caps` field MAY be an empty array.
+In this step, the Requestor broadcasts a temporary DID, and some criteria that a Responder MUST provide in [§3.3](#33-responder-establishes-point-to-point-session). Both pieces of information are sent in a single message. This request payload MUST contain the `did` and `caps` fields. The `caps` field MAY be an empty array.
 
 The payload stage MUST be signalled by the message type `"awake/init"`.
 
@@ -318,7 +318,7 @@ This temporary key MUST only be used for key exchange, and MUST NOT be used for 
     
 ### 3.2.2 Authorization Criteria
 
-The Requestor MAY also include validation criteria expected from the Responder. This MUST be passed as an array of [UCAN capabilities](https://github.com/ucan-wg/spec#23-capability). The Responder MUST be able to prove access to these capabilities in [§3.3](https://github.com/ucan-wg/awake/blob/port/README.md#33-responder-establishes-point-to-point-session).
+The Requestor MAY also include validation criteria expected from the Responder. This MUST be passed as an array of [UCAN capabilities](https://github.com/ucan-wg/spec#23-capability). The Responder MUST be able to prove access to these capabilities in [§3.3](#33-responder-establishes-point-to-point-session).
 
 ### 3.2.3 Payload
 
