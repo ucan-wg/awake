@@ -306,7 +306,6 @@ Attacker                 Requestor                  Responder
    ⋮                         ⋮                          ⋮
 ```
 
-In this step, the Requestor broadcasts a temporary DID, and some criteria that a Responder MUST provide in [§3.3](https://github.com/ucan-wg/awake/blob/port/README.md#33-responder-establishes-point-to-point-session). Both pieces of information are sent in a single message. This request payload MUST contain the `did` and `caps` fields. The `caps` field MAY be an empty array.
 
 The payload stage MUST be signalled by the message type `"awake/init"`.
 
