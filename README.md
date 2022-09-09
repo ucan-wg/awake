@@ -165,7 +165,7 @@ The Sending Chain of the Requestor MUST always match the Receiving Chain of the 
 
 const ecdhSecret = ecdh(aliceSk, bobPk)
 const awakeTag = 0x4157414B452D5543414E // "AWAKE-UCAN" as hex
-const pseudorandomBits = hkdf.generateBits({ecdh, salt: currentSecret, info: awakeTag, bitLength: 256 + 256 + 96})
+const pseudorandomBits = hkdf.generateBits({ecdhSecret, salt: currentSecret, info: awakeTag, bitLength: 256 + 256 + 96})
 const [aesKey, nextSecret, iv] = pseudorandomBits.splitKeysAndIv()
 ```
 
