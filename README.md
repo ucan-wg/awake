@@ -506,14 +506,14 @@ This message MUST be encrypted with the first AES output of the AWAKE [KDF](#143
 | ------ | ----------------------------------------- | -------------------------------------------------------------- | -------- |
 | `awv`  | `"0.1.0"`                                 | AWAKE message version                                          | Yes      |
 | `type` | `"awake/msg"`                             | Generic AWAKE message type                                     | Yes      |
-| `id`   | `sha256(reqStep2EcdhPk + resStep3EcdhPk)` | Message ID                                                     | Yes      |
+| `mid`  | `sha256(reqStep2EcdhPk + resStep3EcdhPk)` | Message ID                                                     | Yes      |
 | `msg`  |                                           | Fulfilled challenge payload encrypted with AES-derived AES key | Yes      |
 
 ``` javascript
 {
   "awv": "0.1.0",
   "type": "awake/msg",
-  "id": sha256(reqStep2EcdhPk + resStep3EcdhPk),
+  "mid": sha256(reqStep2EcdhPk + resStep3EcdhPk),
   "msg": encryptedChallenge
 }
 ```
@@ -580,7 +580,7 @@ Requestor                  Responder
 | ------ | ------------------------------- | -------------------------------------------------------------- | -------- |
 | `awv`  | `"0.1.0"`                       | AWAKE message version                                          | Yes      |
 | `type` | `"awake/msg"`                   | Generic AWAKE message type                                     | Yes      |
-| `id`   | `sha256(resEcdhPk + reqEcdhPk)` | Message ID                                                     | Yes      |
+| `mid`  | `sha256(resEcdhPk + reqEcdhPk)` | Message ID                                                     | Yes      |
 | `msg`  |                                 | Fulfilled challenge payload encrypted with Step 4 ECDH AES-key | Yes      |
 
 #### 3.5.1.1 Encrypted Message
