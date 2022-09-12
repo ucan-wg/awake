@@ -144,7 +144,7 @@ The Sending Chain of the Requestor MUST always match the Receiving Chain of the 
       │                             │                │
       │                             │                │
       │                             ▼                │
-      │                        ┌─────────┐  512-603  │
+      │                        ┌─────────┐  512-607  │
       │                        │         ├───────────┼───► Unique IV
       │                        │  Split  │           │
       │                        │         ├───────────┼───► AES-Key
@@ -165,29 +165,89 @@ The Sending Chain of the Requestor MUST always match the Receiving Chain of the 
 
 const ecdhSecret = ecdh(aliceSk, bobPk)
 const awakeTag = 0x4157414B452D5543414E // "AWAKE-UCAN" as hex
-const pseudorandomBits = hkdf.generateBits({ecdhSecret, salt: currentSecret, info: awakeTag, bitLength: 256 + 256 + 96})
+const pseudorandomBits = hkdf.generateBits({
+  ecdhSecret, 
+  salt: initialRequestorPublicKey,
+  info: awakeTag + currentSecret,
+  bitLength: 608 // 256-bit secret + 256-bit key + 96-bit IV
+})
 const [aesKey, nextSecret, iv] = pseudorandomBits.splitKeysAndIv()
 ```
 
-### 1.5.1.1 ECDH Input
+#### 1.5.1.1 Double Ratchet Initialization
+
+Note that the above requires an existing secret from a previous step. As such, initializing the first step looks slightly different, and MUST NOT be used outside of [§3.3](#33-responder-establishes-point-to-point-session).
+
+```
+         Diffie-Hellman          Secret                      Message
+            Ratchet               Chain                      Crypto
+┌──────────────┴─────────────┐  ┌───┴───┐                 ┌────┴────┐
+ Alice's P-256    Bob's P-256
+   Private Key    Public Key
+            │      │
+            │      │
+      ┌─────┼──────┼─────────────────────────────────┐
+      │     │      │                                 │
+      │     │      │               NULL              │
+      │     │      │                │                │
+      │     ▼      ▼                ▼                │
+      │    ┌────────┐          ┌────────┐            │
+      │    │        │          │        │            │
+      │    │  ECDH  ├─────────►│  HKDF  │            │
+      │    │        │          │        │            │
+      │    └────────┘          └────┬───┘            │
+      │                             │                │
+      │                             │                │
+      │                             ▼                │
+      │                        ┌─────────┐  512-607  │
+      │                        │         ├───────────┼───► Unique IV
+      │                        │  Split  │           │
+      │                        │         ├───────────┼───► AES-Key
+      │                        └────┬────┘  256-511  │      (OKM)
+      │                             │                │
+      │                             │ 0-255          │
+      │                             │                │
+      └─────────────────────────────┼────────────────┘
+                                    │
+                                    │
+                                    ▼
+                                 Initial
+                                 Secret
+```
+
+This step MUST [omit the the info parameter](https://soatok.blog/2021/11/17/understanding-hkdf#how-should-you-introduce-randomness-into-hkdf), since no input secret is available.
+
+``` javascript
+// JS-flavored Pseudocode
+
+const ecdhSecret = ecdh(aliceSk, bobPk)
+const awakeTag = 0x4157414B452D5543414E // "AWAKE-UCAN" as hex
+const pseudorandomBits = hkdf.generateBits({
+  ecdhSecret, 
+  salt: initialRequestorPublicKey,
+  info: awakeTag, // No secret concatenated onto the tag
+  bitLength: 608
+})
+const [aesKey, nextSecret, iv] = pseudorandomBits.splitKeysAndIv()
+```
+
+### 1.5.1.2 ECDH Input
 
 The [ECDH](https://en.wikipedia.org/wiki/Elliptic-curve_Diffie%E2%80%93Hellman) secret MUST be generated using [NIST P-256 elliptic curve](https://neuromancer.sk/std/nist/P-256) curve (AKA `secp256r1`). Non-extractable P-256 keys SHOULD be used where available (e.g. via the [WebCrypto API](https://developer.mozilla.org/en-US/docs/Web/API/SubtleCrypto/generateKey)). The sender MUST rotate their public key on every send. This does mean that in the [message phase](#4-secure-session), multiple keys MAY be valid due to concurrency and out-of-order message delivery. 
 
-#### 1.5.1.2 Secret Input
-
-The updated secret MUST be generated from the first 32-bytes of the HKDF output. This new secret MUST be used as the input secret for the next message. Note that due to out-of-order message delivery, this secret MAY be used in up to one sent and one received message.
+The updated secret MUST be generated from the first 256-bits of the HKDF output. This new secret MUST be used as the input secret for the next message. Note that due to out-of-order message delivery, this secret MAY be used in up to one sent and one received message.
 
 #### 1.5.1.3 Output Message Key
 
 The one-time message key MUST be unique for every message since one Diffie-Hellman key will have changed, and the secret is updated per send or receipt.
 
-This key MUST be generated from the second 32-byte segment of the HKDF output.
+This key MUST be generated from the second 256-byte segment of the HKDF output.
 
 This key MUST be used to start the sender's Sending Chain, and the recipient's Receiving Chain.
 
 #### 1.5.1.4 Initialization Vector Output
 
-Each message uses a unique initialization vector generated from the last 12-bytes of the HKDF output.
+Each message uses a unique initialization vector generated from the last 96-bits of the HKDF output.
 
 ### 1.5.2 Chain Step
 
@@ -372,16 +432,16 @@ This step starts the Double Ratchet. The Responder MUST generate a fresh ECDH P-
 
 The payload contains two encryption layers and a signature: the ECDH components, the AES envelope, and the capability proof signed by the Responder's "true" DID.
 
-The SHA2 hash of the AES key generated in this step MUST be used as the first [input secret in the KDF](#1432-secret-input).
+NB this is the first step of the double ratchet / KDF, as explained in [§1.5.1.1](#double-ratchet-initialization).
 
 ```
                  Payload
 
-            ┌──────ECDH─────┐
-            │               │
-            │  256-bit AES  │
-            │       │       │
-            └───────┼───────┘
+          ┌────────KDF────────┐
+          │                   │
+          │  256-bit AES & IV │
+          │         │         │
+          └─────────┼─────────┘
                     │
                     ▼
 ┌────────────────AES-GCM───────────────┐
