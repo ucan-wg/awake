@@ -1,4 +1,4 @@
-# Authorized Wire Authenticated Key Exchange (AWAKE) Specification v0.1.0
+# Authorized Wire Authenticated Key Exchange (AWAKE) Specification v0.1.1
 
 ## Editors
 
