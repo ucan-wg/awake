@@ -66,6 +66,7 @@ firstHalf
 generateBits
 hkdf
 hoc
+initialRequestorPublicKey
 iss
 javascript
 mTLS
