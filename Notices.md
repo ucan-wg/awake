@@ -16,6 +16,7 @@ A Licensee may consent to accepting the current Community Specification License 
 | --- | --- | --- |
 | Brooklyn Zelenka | @expede | 0.1.0 or later |
 | Matt Galligan | @galligan | 1.0 or later |
+| Savannah Jackson | @boisterouscoder | 1.0 or later |
 
 ## Withdrawals
 
