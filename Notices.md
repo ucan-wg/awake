@@ -15,7 +15,7 @@ A Licensee may consent to accepting the current Community Specification License 
 | Licensee’s name: | Authorized individual and system identifier: | Specification version: |
 | --- | --- | --- |
 | Brooklyn Zelenka | @expede | 0.1.0 or later |
-| Matt Galligan | @galligan | 1.0 or later |
+| Matt Galligan | @galligan | 0.1.0 or later |
 
 ## Withdrawals
 
