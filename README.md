@@ -1,6 +1,6 @@
 # Authorized Wire Authenticated Key Exchange (AWAKE) Specification v0.1.1
 
-![](./assets/awake.png)
+<img src="./assets/awake.png" height="500px" />
 
 ## Editors
 
