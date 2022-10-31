@@ -1,5 +1,7 @@
 # Authorized Wire Authenticated Key Exchange (AWAKE) Specification v0.1.1
 
+![](./assets/awake.png)
+
 ## Editors
 
 * [Brooklyn Zelenka](https://github.com/expede), [Fission](https://fission.codes)
