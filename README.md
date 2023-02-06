@@ -8,6 +8,7 @@
 
 ## Authors
 
+* [Brian Ginsburg](https://github.com/bgins), [Fission](https://fission.codes)
 * [Daniel Holmgren](https://github.com/dholms), [Bluesky](https://blueskyweb.xyz/)
 * [Quinn Wilton](https://github.com/QuinnWilton), [Fission](https://fission.codes)
 * [Brooklyn Zelenka](https://github.com/expede), [Fission](https://fission.codes)
