@@ -8,7 +8,6 @@
 
 ## Authors
 
-* [Brian Ginsburg](https://github.com/bgins), [Fission](https://fission.codes)
 * [Daniel Holmgren](https://github.com/dholms), [Bluesky](https://blueskyweb.xyz/)
 * [Quinn Wilton](https://github.com/QuinnWilton), [Fission](https://fission.codes)
 * [Brooklyn Zelenka](https://github.com/expede), [Fission](https://fission.codes)
@@ -791,3 +790,7 @@ The [Signal Protocol](https://github.com/signalapp/libsignal) heavily influenced
 
 Signal's deployment targets have complete control over their cryptographic stack, and makes use of algorithms like 3XDH based on Curve25519. The AWAKE threat model includes browser application security that requires non-extractable keys, and at time of writing very few of these primitives are available.
 
+# 8. Acknowledgements
+
+
+Many thanks to [Brian Ginsburg](https://github.com/bgins) for his exploration of AWAKE and suggestion to recommend backoff on PIN attempts.

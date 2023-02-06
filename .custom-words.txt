@@ -3,7 +3,7 @@ AES
 AKE
 API's
 AWAKE's
-backoff
+AcknowledgementS
 Bluesky
 CAs
 Cleartext
@@ -52,6 +52,7 @@ att
 aud
 auth
 awakeTag
+backoff
 bitLength
 bobPk
 cleartext
