@@ -792,5 +792,4 @@ Signal's deployment targets have complete control over their cryptographic stack
 
 # 8. Acknowledgements
 
-
 Many thanks to [Brian Ginsburg](https://github.com/bgins) for his exploration of AWAKE and suggestion to recommend backoff on PIN attempts.
