@@ -560,6 +560,8 @@ At this stage, the Responder has been validated, but the Requestor is still untr
 
 The Requestor MUST provide the proof of authorization set by the Responder payload in [§3.3.2](#332-validation-ucan). The RECOMMENDED authorization methods are PIN validation (`pin`) and UCAN (`ucan`). Note that if the Requestor does not know how to respond to fulfill an authorization method, the AWAKE connection MUST fail with an [`unknown-challenge` message](#62-unknown-challenge-error).
 
+When using PIN validation, it is RECOMMENDED that the handshake fail after a maximum number of failed validation attempts, or the attempts be rate limited with exponential backoff.
+
 ### 3.4.1 Payload
 
 This message MUST be encrypted with the first AES output of the AWAKE [KDF](#143-diffie-hellman-key-derivation), using the initial chain secret established in [§3.3](#33-responder-establishes-point-to-point-session).
@@ -788,3 +790,6 @@ The [Signal Protocol](https://github.com/signalapp/libsignal) heavily influenced
 
 Signal's deployment targets have complete control over their cryptographic stack, and makes use of algorithms like 3XDH based on Curve25519. The AWAKE threat model includes browser application security that requires non-extractable keys, and at time of writing very few of these primitives are available.
 
+# 8. Acknowledgements
+
+Many thanks to [Brian Ginsburg](https://github.com/bgins) for his exploration of AWAKE and suggestion to recommend backoff on PIN attempts.
