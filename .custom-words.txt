@@ -3,6 +3,7 @@ AES
 AKE
 API's
 AWAKE's
+backoff
 Bluesky
 CAs
 Cleartext
