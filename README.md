@@ -1,4 +1,4 @@
-# Authorized Wire Authenticated Key Exchange (AWAKE) Specification v0.1.1
+# Authorized Wire Authenticated Key Exchange (AWAKE) Specification v0.2.0
 
 <img src="./assets/awake.png" height="500px" />
 
@@ -14,7 +14,7 @@
 
 # 0. Abstract
 
-Authorized Wire Authenticated Key Exchange (AWAKE) is an [AKE](https://en.wikipedia.org/wiki/Authenticated_Key_Exchange) built on top of the [UCAN auth token](https://github.com/ucan-wg/spec). AWAKE is similar to other [mutual authentication](https://en.wikipedia.org/wiki/Mutual_authentication) schemes (such as self-signed [mTLS](https://datatracker.ietf.org/doc/html/rfc8705)), but with a focus on authorization and proof. AWAKE leverages the UCAN capability chain to prove access to some resource, validating that the requestor is communicating with a party capable of performing certain actions. This is a helpful root of trust with a well defined context when establishing a secure communications channel.
+Authorized Wire Authenticated Key Exchange (AWAKE) is an [AKE](https://en.wikipedia.org/wiki/Authenticated_Key_Exchange) built on top of [MLS] and [UCAN]. AWAKE is similar to other [mutual authentication](https://en.wikipedia.org/wiki/Mutual_authentication) schemes (such as self-signed [mTLS](https://datatracker.ietf.org/doc/html/rfc8705)), but with a focus on authorization and proof. AWAKE leverages the UCAN capability chain to prove access to some resource, validating that the requestor is communicating with a party capable of performing certain actions. This is a helpful root of trust with a well defined context when establishing a secure communications channel.
 
 ## Language
 
@@ -780,8 +780,6 @@ IKE shares many commonalities with AWAKE, including making available of the same
 
 ## 7.4 Message Layer Security (MLS)
 
-[MLS](https://messaginglayersecurity.rocks/) is a work-in-progress protocol that aims to eventually improve on TLS 1.3. It includes design considerations for doing group messaging, uses ratchet trees, and so on. MLS does include the ability to use certificate authentication (among other authentication methods).
-
 AWAKE may adopt MLS features in the future as it becomes more mature, but today AWAKE is restricted to a point-to-point protocol.
 
 ## 7.5 Signal Protocol
@@ -793,3 +791,6 @@ Signal's deployment targets have complete control over their cryptographic stack
 # 8. Acknowledgements
 
 Many thanks to [Brian Ginsburg](https://github.com/bgins) for his exploration of AWAKE and suggestion to recommend backoff on PIN attempts.
+
+[MLS]: https://messaginglayersecurity.rocks/
+[UCAN]: https://github.com/ucan-wg/spec
