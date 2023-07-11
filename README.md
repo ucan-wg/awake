@@ -119,36 +119,31 @@ AWAKE proceeds in one connection step, four communication rounds, and an OPTIONA
 6. Secure session messages (zero or more rounds)
 7. Either party disconnects
 
-```
-Attacker                 Requestor                  Responder
-   │                         │                          │      ─┐
-   │       Temp ECDH DID     │      Temp ECDH DID       │ (2a)  │
-   │      & Auth Criteria    │     & Auth Criteria      │ (2b)  │
-   │◄────────────────────────┼─────────────────────────►│       │
-   │                         │                          │       │
-   │                         │       Authorization      │ (3a)  │
-   │                         │       & Secret Init      │ (3b)  │
-   │                         │◄─────────────────────────┤       │
-   │                         │                          │       ├─ Handshake
-   │                         │        Actual DID        │ (4a)  │
-   │                         │        & Challenge       │ (4b)  │
-   │                         ├─────────────────────────►│       │
-   │                         │                          │       │
-   │                         │                          │       │
-   │                         │           ACK            │ (5)   │
-   │                         │◄─────────────────────────┤       │
-   │                         │                          │      ─┘
-   ϟ                         ϟ                          ϟ      ─┐
-   │                         │                          │       │
-   │                         │         Messages         │ (6)   ├─ Session
-   │                         │◄────────────────────────►│       │
-   │                         │                          │       │ 
-   ϟ                         ϟ                          ϟ      ─┘
-   │                         │                          │      ─┐
-   │                         │           FIN            │ (7)   │
-   │                         │◄────────────────────────►│       ├─ Disconnection
-   │                         │                          │       │
-   │                         ▀                          ▀      ─┘
+```mermaid
+sequenceDiagram
+    participant Attacker
+    participant Requestor
+    participant Provider
+    participant Group
+
+    Note over Attacker, Group : 1. Initial (public) broadcast
+        Requestor -->> Attacker: 1.1 Temp X25519 DID & Auth criterea
+        Requestor ->>+ Provider: 1.1 Temp X25519 DID & Auth criterea
+
+    Note over Requestor, Group: 2. Authorize Provider
+        Provider ->>- Requestor: ECDH🔐(Nullipotent UCAN & channel info)
+
+    Note over Requestor, Group: 3. Authorize Requestor
+        Requestor ->> Provider: MLS Handshake (UCAN or Challenge)
+        Provider  ->> Requestor: MLS Key Package
+
+    Note over Requestor, Group: 4. MLS session
+
+        Group -->> Requestor: msg
+        Requestor -->> Group: msg
+        Requestor -->> Group: msg
+        Group -->> Requestor: msg
+        Requestor -->> Group: msg
 ```
     
 # 5. Handshake
