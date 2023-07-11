@@ -1,24 +1,24 @@
-# Authorized Wire Authenticated Key Exchange (AWAKE) Specification v0.2.0
+# Authorized Wire via Authenticated Key Exchange (AWAKE) Specification v0.2.0
 
 <img src="./assets/awake.png" height="500px" />
 
 ## Editors
 
-* [Brooklyn Zelenka](https://github.com/expede), [Fission](https://fission.codes)
+* [Brooklyn Zelenka], [Fission]
 
 ## Authors
 
-* [Daniel Holmgren](https://github.com/dholms), [Bluesky](https://blueskyweb.xyz/)
-* [Quinn Wilton](https://github.com/QuinnWilton), [Fission](https://fission.codes)
-* [Brooklyn Zelenka](https://github.com/expede), [Fission](https://fission.codes)
+* [Daniel Holmgren], [Bluesky]
+* [Quinn Wilton], [Fission]
+* [Brooklyn Zelenka], [Fission]
 
 # 0. Abstract
 
-Authorized Wire Authenticated Key Exchange (AWAKE) is an [AKE](https://en.wikipedia.org/wiki/Authenticated_Key_Exchange) built on top of [MLS] and [UCAN]. AWAKE is similar to other [mutual authentication](https://en.wikipedia.org/wiki/Mutual_authentication) schemes (such as self-signed [mTLS](https://datatracker.ietf.org/doc/html/rfc8705)), but with a focus on authorization and proof. AWAKE leverages the UCAN capability chain to prove access to some resource, validating that the requestor is communicating with a party capable of performing certain actions. This is a helpful root of trust with a well defined context when establishing a secure communications channel.
+Authorized Wire via Authenticated Key Exchange (AWAKE) is an [AKE] built on top of [MLS] and [UCAN]. AWAKE is similar to other [mutual authentication] schemes (such as self-signed [mTLS]), but with a focus on authorization and proof. AWAKE leverages the UCAN capability chain to prove access to some resource, validating that the requestor is communicating with a party capable of performing certain actions. This is a helpful root of trust with a well defined context when establishing a secure communications channel.
 
 ## Language
 
-The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT", "SHOULD", "SHOULD NOT", "RECOMMENDED", "MAY", and "OPTIONAL" in this document are to be interpreted as described in [RFC 2119](https://datatracker.ietf.org/doc/html/rfc2119).
+The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT", "SHOULD", "SHOULD NOT", "RECOMMENDED", "MAY", and "OPTIONAL" in this document are to be interpreted as described in [RFC 2119].
 
 # 1 Introduction
 
@@ -43,7 +43,7 @@ This document contains shorthand (especially in diagrams) and nuanced senses of 
 
 ## 1.2 Payload Fields
 
-Payloads are encoding agnostic, but JSON is RECOMMENDED. For JSON, any fields that contain non-JSON values (such as ECDH public keys and encryption payloads) MUST be serialized as unpadded [Base64](https://datatracker.ietf.org/doc/html/rfc4648).
+Payloads are encoding agnostic, but JSON is RECOMMENDED. For JSON, any fields that contain non-JSON values (such as ECDH public keys and encryption payloads) MUST be serialized as unpadded [Base64].
 
 All payloads MUST include the "AWAKE version" field `awv: "0.1.0"`. Payloads MUST also include a message type field `type` (see each stage for the value). All field keys and message type values MUST be lowercase and treated as case-sensitive.
 
@@ -56,7 +56,7 @@ All payloads MUST include the "AWAKE version" field `awv: "0.1.0"`. Payloads MUS
 
 Encryption is core to securing a tunnel. Key material and secrets created for AWAKE MUST be considered ephemeral and MUST NOT be reused between sessions.
 
-At a high-level, AWAKE uses a NIST P-256 [Elliptic Curve Diffie-Hellman](https://en.wikipedia.org/wiki/Elliptic-curve_Diffie%E2%80%93Hellman) (ECDH) [Double Ratchet](https://signal.org/docs/specifications/doubleratchet/) to secure messages.
+At a high-level, AWAKE uses a NIST P-256 [Elliptic Curve Diffie-Hellman] (ECDH) [Double Ratchet] to secure messages.
 
 ### 1.3.1 Asymmetric Keys
 
@@ -762,35 +762,24 @@ All errors MUST use the generic [AWAKE message payload](#4-secure-session), and 
 }
 ```
 
-# 7 Prior Art
+# 7. Acknowledgements
 
-## 7.1 Mutual TLS (mTLS)
+Many thanks to [Brian Ginsburg] for his exploration of AWAKE and suggestion to recommend backoff on PIN attempts.
 
-[mTLS](https://www.rfc-editor.org/rfc/rfc8705.html) is the best-known mutual authentication protocol. In many ways, AWAKE is mTLS with trusted rooted in UCAN and a self-signed capabilities model.
-
-## 7.2 IKEv2
-
-The [Internet Key Exchange (IKE) Protocol](https://datatracker.ietf.org/doc/html/rfc7296) is typically (but not exclusively) used as part of [IPsec](https://en.wikipedia.org/wiki/IPsec). IKE generally uses certificate authorities (CAs). IKE requires that X.509 be supported.
-
-IKE shares many commonalities with AWAKE, including making available of the same cryptographic algorithms (e.g. P-256).
-
-## 7.3 WireGuard
-
-[WireGuard](https://www.wireguard.com/) is a VPN protocol that is widely deployed via the Linux kernel, and has since been ported to many other systems. It is UDP-based and aimed at raw performance and security. Being low-level, it is unconstrained in which cryptographic primitives is uses (i.e. Curve25519).
-
-## 7.4 Message Layer Security (MLS)
-
-AWAKE may adopt MLS features in the future as it becomes more mature, but today AWAKE is restricted to a point-to-point protocol.
-
-## 7.5 Signal Protocol
-
-The [Signal Protocol](https://github.com/signalapp/libsignal) heavily influenced the design of AWAKE. Signal is widely deployed, having been included in WhatsApp, Android Messages, the Signal app, and others.
-
-Signal's deployment targets have complete control over their cryptographic stack, and makes use of algorithms like 3XDH based on Curve25519. The AWAKE threat model includes browser application security that requires non-extractable keys, and at time of writing very few of these primitives are available.
-
-# 8. Acknowledgements
-
-Many thanks to [Brian Ginsburg](https://github.com/bgins) for his exploration of AWAKE and suggestion to recommend backoff on PIN attempts.
-
+[AKE]: https://en.wikipedia.org/wiki/Authenticated_Key_Exchange
+[Brian Ginsburg]: https://github.com/bgins
 [MLS]: https://messaginglayersecurity.rocks/
+[Signal Protocol]: https://github.com/signalapp/libsignal
 [UCAN]: https://github.com/ucan-wg/spec
+[WireGuard]: https://www.wireguard.com/
+[mutual authentication]: https://en.wikipedia.org/wiki/Mutual_authentication
+[mTLS]: https://datatracker.ietf.org/doc/html/rfc8705
+[RFC 2119]: https://datatracker.ietf.org/doc/html/rfc2119
+[Fission]: https://fission.codes
+[Quinn Wilton]: https://github.com/QuinnWilton
+[Brooklyn Zelenka]: https://github.com/expede
+[Daniel Holmgren]: https://github.com/dholms
+[Bluesky]: https://blueskyweb.xyz
+[Base64]: https://datatracker.ietf.org/doc/html/rfc4648
+[Elliptic Curve Diffie-Hellman]: https://en.wikipedia.org/wiki/Elliptic-curve_Diffie%E2%80%93Hellman
+[Double Ratchet]: https://signal.org/docs/specifications/doubleratchet/) to secure messages
