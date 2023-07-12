@@ -442,11 +442,11 @@ This is absolutely an option! However, it would require implementing a special c
 
 AWAKE as specified uses the best practies at time of writing. They are used in MLS, TLS, and more.
 
-RSA is widely deployed, but the key sizes are becoming quite large for an acceptable level of security. The NIST elliptic curves (such as P-256) have suspicious parameters that have lead to [concerns over the presence of a backdoor][SafeCurves]. AES is widely used, but is more suseptible to being used incorrectly than XChaCha.
+RSA is widely deployed, but the key sizes are becoming quite large for an acceptable level of security. The NIST elliptic curves (such as P-256) have suspicious parameters that have lead to [concerns over the presence of a backdoor][SafeCurves]. AES is widely used, but is more susceptible to being used incorrectly than XChaCha.
 
-Many of the algoritms mentioned above are available as non-extractabe in the [WebCrypto API]. This is a definite advantage for certain attack vectors, such as 
+Many of the algoritms mentioned above are available as non-extractable in the [WebCrypto API]. This is a definite advantage for certain attack vectors, such as 
 
-At time of writing, there is active effort in [bringing Ed25519/X25519 to the WebCrypto API][Secure Curves in WebCrypto]. Once this is complete, it is RECOMMENDED that all browser implementations make use of the non-extracabile functionality.
+At time of writing, there is active effort in [bringing Ed25519/X25519 to the WebCrypto API][Secure Curves in WebCrypto]. Once this is complete, it is RECOMMENDED that all browser implementations make use of the non-extractable functionality.
 
 ## 8.3 Why HKDF instead of the BLAKE3 key derivation function?
 
@@ -454,7 +454,7 @@ Both HKDF and BLAKE3's KDF mode are widely accepted as being very good key deriv
 
 ## 8.4 Is AWAKE quantum-secure?
 
-Many of the cryptographic algorithms uses in AWAKE are suseptible to a hypothetical quantum computer of sufficient size. We are waiting for at least the NIST Post-Quantum Cryptography Standardization recommendations before updating the protocol's cryptography to account for this attack vector.
+Many of the cryptographic algorithms uses in AWAKE are susceptible to a hypothetical quantum computer of sufficient size. We are waiting for at least the NIST Post-Quantum Cryptography Standardization recommendations before updating the protocol's cryptography to account for this attack vector.
 
 <!-- External Links -->
 
