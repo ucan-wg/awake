@@ -345,7 +345,7 @@ If more than one `awake/challenge` field is set, the lowest-indexed one MUST be 
 
 ## 5.3 Authorize Requestor
 
-At this stage, the Provider has been validated, but the Requestor is still untrusted. The Requesytor now has enough trust in the Provider to initiate an MLS session.
+At this stage, the Provider has been validated, but the Requestor is still untrusted. The Requestor now has enough trust in the Provider to initiate an MLS session.
 
 The Requestor now MUST provide their actual DID over the secure channel, and MUST prove that they are a trusted party rather than a PITM, eavesdropper, or phisher. This is accomplished in the [MLS Credentials] step.
 
