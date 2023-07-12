@@ -130,7 +130,6 @@ sequenceDiagram
         Group -->> Requestor: msg
         Requestor -->> Group: msg
 ```
-    
 
 # 4.1 Format
 
@@ -183,8 +182,8 @@ If no capabilties are required, the `caps` field MUST be set to an empty map (`{
 | ------ | -------------- | ---------------------------------------------- | -------- |
 | `awv`  | `"0.3.0"`      | AWAKE message version                          | Yes      |
 | `type` | `"awake/init"` | Signal which step of AWAKE this payload is for | Yes      |
-| `did`  |                | The Requestor's initial (temp) ECDH P-256      | Yes      |
-| `caps` |                | Capabilities that the Provider MUST provide   | Yes      |
+| `did`  |                | The Requestor's initial (temp) ECDH X25519     | Yes      |
+| `caps` |                | Capabilities that the Provider MUST provide    | Yes      |
 
 #### 5.1.3.1 JSON Example
 
@@ -226,7 +225,7 @@ In this step, the Provider MUST prove that they have access to the requested res
 
 
 
-This step starts the Double Ratchet. The Provider MUST generate a fresh ECDH P-256 key pair. This MUST be combined with the Requestor's ECDH public key to generate a 256-bit AES key, which MUST be used to encrypt the private payload. The Requestor SHOULD accept multiple concurrent connection attempts on this request DID, at least until the handshake is complete.
+This step starts the Double Ratchet. The Provider MUST generate a fresh ECDH X25519 key pair. This MUST be combined with the Requestor's ECDH public key to generate a 256-bit AES key, which MUST be used to encrypt the private payload. The Requestor SHOULD accept multiple concurrent connection attempts on this request DID, at least until the handshake is complete.
 
 The payload contains two encryption layers and a signature: the ECDH components, the XChaCha-Poly1305 envelope, and the capability proof signed by the Provider's "true" DID.
 
@@ -334,48 +333,29 @@ The Requestor now MUST provide their actual DID over the secure channel, and MUS
 
 **NOTE: The Requestor is not yet trusted at this step, and MUST be treated as a possible impersonator or PITM**
 
-```
-Requestor                  Provider
-    ⋮                          ⋮
-    │        Actual DID        │ (4a)
-    │        & Challenge       │ (4b)
-    ├─────────────────────────►│
-    ⋮                          ⋮
+```mermaid
+sequenceDiagram
+    participant Requestor
+    participant Provider
+
+    Note over Requestor, Provider: 3. Authorize Requestor
+        Requestor ->> Provider: MLS Handshake (UCAN or Challenge)
 ```
 
 The Requestor MUST provide the proof of authorization set by the Provider payload in [§3.3.2](#332-validation-ucan). The RECOMMENDED authorization methods are PIN validation (`pin`) and UCAN (`ucan`). Note that if the Requestor does not know how to respond to fulfill an authorization method, the AWAKE connection MUST fail with an [`unknown-challenge` message](#62-unknown-challenge-error).
 
 When using PIN validation, it is RECOMMENDED that the handshake fail after a maximum number of failed validation attempts, or the attempts be rate limited with exponential backoff.
 
-### 3.4.1 Payload
-
-This message MUST be encrypted with the first AES output of the AWAKE [KDF](#143-diffie-hellman-key-derivation), using the initial chain secret established in [§3.3](#33-responder-establishes-point-to-point-session).
-
-| Field  | Value                                     | Description                                                    | Required |
-| ------ | ----------------------------------------- | -------------------------------------------------------------- | -------- |
-| `awv`  | `"0.3.0"`                                 | AWAKE message version                                          | Yes      |
-| `type` | `"awake/msg"`                             | Generic AWAKE message type                                     | Yes      |
-| `msg`  |                                           | Fulfilled challenge payload encrypted with AES-derived AES key | Yes      |
-
-``` javascript
-{
-  "awv": "0.3.0",
-  "type": "awake/msg",
-  "mid": sha256(reqStep2EcdhPk + resStep3EcdhPk),
-  "msg": encryptedChallenge
-}
-```
-
-#### 3.4.2.2 Out-of-Band PIN Challenge
+#### 5.3.1.1 Out-of-Band PIN Challenge
 
 Out-of-band PIN challenges are most useful when the Requestor would not be able to provide UCAN validation, such as when signing into a new device that has not been delegated to yet. The PIN MUST be set by the Requestor, and transmitted out of band. Some examples of out of band transmission include displaying text on screen, email, text message, or QR code.
 
 The PIN values MUST be within the UTF-8 character set. The PIN MUST be included in the `pin` field. It is RECOMMENDED that the PIN be restricted to human-readable characters, and 4 to 10 characters long. If a very long challenge is required, it is RECOMMENDED that the SHA2 hash of the challenge be used rather than putting a large challenge over the wire.
 
-| Field  | Value                                                    | Description                 | Required |
-| ------ | -------------------------------------------------------- | --------------------------- | -------- |
-| `did`  |                                                          | "Actual" Requestor DID      | Yes      |
-| `sig`  | `sign(requestorPK, sha256(responderDid + outOfBandPin))` | Signature of challenge hash | Yes      |
+| Field  | Value                                                      | Description                 | Required |
+| ------ | ---------------------------------------------------------- | --------------------------- | -------- |
+| `did`  |                                                            | "Actual" Requestor DID      | Yes      |
+| `sig`  | `sign(requestorPK, sha2_256(responderDid + outOfBandPin))` | Signature of challenge hash | Yes      |
 
 ```javascript
 {
@@ -384,7 +364,7 @@ The PIN values MUST be within the UTF-8 character set. The PIN MUST be included 
 }
 ```
 
-#### 3.4.2.3 Direct UCAN Challenge
+#### 5.3.1.2 Direct UCAN Challenge
 
 If UCAN auth is required by the Provider, the Requestor MUST provide a UCAN. This is the same strategy as the one used by the Provider in [§3.3](#33-responder-es tablishes-point-to-point-session): the UCAN MUST be encrypted with the session key and the IV from the enclosing payload, MUST be given in a raw format, and MUST be inline (without a JSON object wrapper or similar).
 
@@ -405,34 +385,19 @@ flowchart LR
     end
 ```
 
-# 6 Errors
-
-### 6.1 Cleartext Envelope
-
-All errors MUST use the generic [AWAKE message payload](#4-secure-session), and include the error information in the encrypted payload. It MUST use the latest ECDH keys.
-
-## 6.2 Unknown Challenge Error
-
-| Field         | Value               | Description                         | Required |
-| ------------- | ------------------- | ----------------------------------- | -------- |
-| `awake/error` | `unknown-challenge` | Unknown challenge type              | Yes      |
-| `awake/mid`   |                     | Message ID that generated the error | Yes      |
-
-``` javascript
-// JSON encoded
-{
-  "awake/error": "unknown-challenge",
-  "awake/mid": offendingMessageId
-}
-```
-
-# 7. Acknowledgements
+# 6. Acknowledgements
 
 Many thanks to [Brian Ginsburg] for his exploration of AWAKE and suggestion to recommend backoff on PIN attempts.
 
 PRev coauthors:
 - Quinn
 - Daniel
+
+# 7 FAQ
+
+## 7.1 Why not a variant without MLS for short sessions?
+
+This is absolutely an option! However, it would require implementing a special case. Such a system could arguably be more efficient when the number of messages is extremely small, but having one well tested library that could handle more use cases was more strongly indicated in this revision of the spec.
 
 <!-- External Links -->
 
