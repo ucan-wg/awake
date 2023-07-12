@@ -10,13 +10,13 @@
 
 * [Brooklyn Zelenka], [Fission]
 
-# 0. Abstract
-
-Authorized Wire for Authenticated Key Exchange (AWAKE) is a [mutual authentication] [AKE] designed for P2P applications. To root authority of both parties, AWAKE leverages the [UCAN] capability chain to prove access to some resource(s), validating that the requestor is communicating with a party capable of performing certain actions. 
-
 ## Language
 
 The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT", "SHOULD", "SHOULD NOT", "RECOMMENDED", "MAY", and "OPTIONAL" in this document are to be interpreted as described in [RFC 2119].
+
+# 0 Abstract
+
+Authorized Wire for Authenticated Key Exchange (AWAKE) is a [mutually authenticating][mutual authentication] [AKE] for P2P applications. To root authority of both parties, AWAKE leverages the [UCAN] capability chain to prove access to some resource(s), validating that the requestor is communicating with a party capable of performing certain actions. 
 
 # 1 Introduction
 
@@ -96,10 +96,10 @@ AWAKE proceeds in one connection step, four communication rounds, and an OPTIONA
 1. Both parties subscribe to a well-known channel
 2. Requestor broadcasts intent
     * a. Temporary DID
-    * b. Responder authorization criteria
-3. Responder establishes point-to-point session
-    * a. Responder securely proves that they have sufficient rights
-    * b. Responder transmits a session key via asymmetric key exchange
+    * b. Provider authorization criteria
+3. Provider establishes point-to-point session
+    * a. Provider securely proves that they have sufficient rights
+    * b. Provider transmits a session key via asymmetric key exchange
 4. Requestor authentication over MLS
     * a. Requestor sends an MLS connection request with their actual DID
     * b. Requestor sends instance validation (e.g. UCAN or out-of-band PIN)
@@ -131,9 +131,6 @@ sequenceDiagram
         Requestor -->> Group: msg
 ```
     
-# 4. Protocol Steps
-
-<!--
 
 # 4.1 Format
 
@@ -141,15 +138,9 @@ Payloads are encoding agnostic, but JSON is RECOMMENDED. For JSON, any fields th
 
 All payloads MUST include the "AWAKE version" field `awv: "0..1.0"`. Payloads MUST also include a message type field `type` (see each stage for the value). All field keys and message type values MUST be lowercase and treated as case-sensitive.
 
+# 5. Protocol Steps
 
-
-| Field  | Value          | Description           | Required |
-| ------ | -------------- | --------------------- | -------- |
-| `awv`  | `"0.3.0"`      | AWAKE message version | Yes      |
-| `type` | `awake/<type>` | AWAKE message type    | Yes      |
--->
-
-## 4.1 Subscribe to Common Channel
+## 5.1 Subscribe to Common Channel
 
 AWAKE begins by all parties listening on a common channel. AWAKE itself is channel and transport agnostic; it MAY be broadcast to all listeners, MAY be asynchronous, and MAY be over any transport. To reduce channel noise, it is RECOMMENDED that this channel be scoped to a specific topic.
 
@@ -157,7 +148,7 @@ For instance, a WebSocket pubsub channel on the topic `awake:did:key:zStEZpzSMtT
 
 The AWAKE handshake MUST occur on a single channel. The underlying channel MAY be changed after the handshake is complete.
 
-## 4.2 Requestor Broadcasts Intent
+## 5.2 Requestor Broadcasts Intent
 
 **NOTE: This stage is completely in the clear.**
 
@@ -170,31 +161,30 @@ sequenceDiagram
     Note over Attacker, Provider : 1. Initial (public) broadcast
         Requestor -->> Attacker: 1.1 Temp X25519 DID & Auth criterea
         Requestor ->> Provider: 1.1 Temp X25519 DID & Auth criterea
-
 ```
 
 ### 5.2.1 Temporary ECDH DID
 
 Since this message is sent entirely in the clear, the Requestor MUST generate a fresh X25519 key pair per AWAKE initialization attempt. This key MUST be used as the first step in the ECDH Double Ratchet. In the payload, the public key MUST be formatted as a [`did:key`].
 
-This temporary key MUST only be used for key exchange, and MUST NOT be used for signatures, and MUST NOT be persisted past this one session bootstrap (i.e. discard after [§3.3](#33-responder-establishes-point-to-point-session)).
+This temporary key MUST only be used for key exchange, and MUST NOT be used for signatures, and MUST NOT be persisted past this one session bootstrap (i.e. discard after this step)
 
 Where possible, it is RECOMMENDED that the private key be non-extractable.
 
-### 3.2.2 Authorization Criteria
+### 5.2.2 Authorization Criteria
 
-The Requestor MAY also include validation criteria expected from the Responder. This MUST be passed as a map of [UCAN capabilities]. The Responder MUST be able to prove access to these capabilities in [§3.3](#33-responder-establishes-point-to-point-session).
+The Requestor MAY also include validation criteria expected from the Provider. This MUST be passed as a map of [UCAN capabilities]. The Provider MUST be able to prove access to these capabilities in [their resposne].
 
 If no capabilties are required, the `caps` field MUST be set to an empty map (`{}`).
 
-### 3.2.3 Payload
+### 5.2.3 Payload
 
 | Field  | Value          | Description                                    | Required |
 | ------ | -------------- | ---------------------------------------------- | -------- |
 | `awv`  | `"0.3.0"`      | AWAKE message version                          | Yes      |
 | `type` | `"awake/init"` | Signal which step of AWAKE this payload is for | Yes      |
 | `did`  |                | The Requestor's initial (temp) ECDH P-256      | Yes      |
-| `caps` |                | Capabilities that the Responder MUST provide   | Yes      |
+| `caps` |                | Capabilities that the Provider MUST provide   | Yes      |
 
 #### 3.2.3.1 JSON Example
 
@@ -203,41 +193,37 @@ If no capabilties are required, the `caps` field MUST be set to an empty map (`{
   "awv": "0.3.0",
   "type": "awake/init",
   "did": "did:key:zDnaerx9CtbPJ1q36T5Ln5wYt3MQYeGRG5ehnPAmxcf5mDZpv",
-  "caps": [
-    {
-      "with": "mailto:me@example.com",
-      "can": "msg/send"
+  "caps": {
+    "mailto:me@example.com": {
+      "msg/send": [
+        {"to": ".*@example.com"}
+      ]
     },
-    {
-      "with": "dns:example.com",
-      "can": "crud/update"
-    },
-    {
-      "with": "owned://did:key:z6MkiTBz1ymuepAQ4HEHYSF1H8quG5GLVVQR3djdX3mDooWp/*",
-      "can": "*"
+    "dns:example.com": {
+      "crud/update" [{}]
     }
-  ]
+  }
 }
 ```
 
-## 3.3 Responder Establishes Point-to-Point Session
+## 3.3 Provider Establishes Point-to-Point Session
 
-**NOTE: The Responder is not yet trusted at this step, and MUST be treated as a possible impersonator or [PITM](https://en.wikipedia.org/wiki/Man-in-the-middle_attack)**
+**NOTE: The Provider is not yet trusted at this step, and MUST be treated as a possible impersonator or [PITM](https://en.wikipedia.org/wiki/Man-in-the-middle_attack)**
 
+``` mermaid
+sequenceDiagram
+    participant Requestor
+    participant Provider
+
+    Note over Requestor, Provider: 2. Authorize Provider
+        Provider ->> Requestor: ECDH🔐(Nullipotent UCAN & channel info)
 ```
-Requestor                  Responder
-    ⋮                          ⋮
-    │       Authorization      │ (3a)
-    │       & Secret Init      │ (3b)
-    │◄─────────────────────────┤
-    ⋮                          ⋮
-```
 
-In this step, the Responder MUST prove that they have access to the requested resources. This is used to establish trust in the capabilities of the Responder, but MUST NOT actually delegate anything. This UCAN MUST contain the Requestor's temporary ECDH DID in the `aud` field. The `iss` field MUST contain the Responder's actual DID (i.e. not a temporary ECDH DID).
+In this step, the Provider MUST prove that they have access to the requested resources. This is used to establish trust in the capabilities of the Provider, but MUST NOT actually delegate anything. This UCAN MUST contain the Requestor's temporary ECDH DID in the `aud` field. The `iss` field MUST contain the Provider's actual DID (i.e. not a temporary ECDH DID).
 
-This step starts the Double Ratchet. The Responder MUST generate a fresh ECDH P-256 key pair. This MUST be combined with the Requestor's ECDH public key to generate a 256-bit AES key, which MUST be used to encrypt the private payload. The Requestor SHOULD accept multiple concurrent connection attempts on this request DID, at least until the handshake is complete.
+This step starts the Double Ratchet. The Provider MUST generate a fresh ECDH P-256 key pair. This MUST be combined with the Requestor's ECDH public key to generate a 256-bit AES key, which MUST be used to encrypt the private payload. The Requestor SHOULD accept multiple concurrent connection attempts on this request DID, at least until the handshake is complete.
 
-The payload contains two encryption layers and a signature: the ECDH components, the AES envelope, and the capability proof signed by the Responder's "true" DID.
+The payload contains two encryption layers and a signature: the ECDH components, the AES envelope, and the capability proof signed by the Provider's "true" DID.
 
 NB this is the first step of the double ratchet / KDF, as explained in [§1.5.1.1](#double-ratchet-initialization).
 
@@ -249,7 +235,7 @@ flowchart TD
 
     subgraph Env [Encrypted XChaCha-Poly1305 Envelope]
         ucan["UCAN
-            iss: ResponderDID
+            iss: ProviderDID
             aud:ReqECDH&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
             att: []&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
             fct: [challenge]&nbsp;&nbsp;&nbsp;
@@ -264,13 +250,13 @@ Upon receipt, the Requestor MUST validate that the UCAN capabilities in the proo
 
 ### 3.3.1 Validation UCAN
 
-The validation UCAN MUST NOT be used to delegate any capabilities. This UCAN MUST only be used to prove access to capabilities and sign the next ECDH public key. The `att` and `my` fields MUST be empty arrays. The issuer (`iss`) field MUST contain the Responder's long-term DID (rather than the temporary ECDH DID). The audience (`aud`) field MUST contain the Requestor's temporary ECDH DID from [§3.2](#32-requestor-broadcasts-intent).
+The validation UCAN MUST NOT be used to delegate any capabilities. This UCAN MUST only be used to prove access to capabilities and sign the next ECDH public key. The `att` and `my` fields MUST be empty arrays. The issuer (`iss`) field MUST contain the Provider's long-term DID (rather than the temporary ECDH DID). The audience (`aud`) field MUST contain the Requestor's temporary ECDH DID from [§3.2](#32-requestor-broadcasts-intent).
 
 This UCAN MUST be encrypted with the [KDF-generated AES-GCM key](#143-diffie-hellman-key-derivation) plus IV before being placed into the payload in [§3.3.2](#332-payload).
 
 #### 3.3.1.1 Challenge
 
-The Responder MUST set the method of challenge to validate the Requestor. This MUST be set in the `fct` section of the UCAN so that it is signed by the Responder. The RECOMMENDED authorization methods are out-of-band PIN validation (`oob-pin`) and UCAN (`ucan`).
+The Provider MUST set the method of challenge to validate the Requestor. This MUST be set in the `fct` section of the UCAN so that it is signed by the Provider. The RECOMMENDED authorization methods are out-of-band PIN validation (`oob-pin`) and UCAN (`ucan`).
 
 To set the challenge as `oob-pin`, the `fct` section of the UCAN MUST include the following:
 
@@ -301,9 +287,9 @@ To set the challenge as `ucan`, the `fct` section of the UCAN MUST include the f
 
 If more than one `awake/challenge` field is set, the lowest-indexed one MUST be used.
 
-#### 3.3.1.2 Next Responder ECDH
+#### 3.3.1.2 Next Provider ECDH
 
-The UCAN's facts (`fct`) field MUST also include the next Responder ECDH public key (to be used in Step 4) encoded as `did:key`. Having the next key in the UCAN places it inside the signature envelope, associating the next key with the Responder's UCAN DID.
+The UCAN's facts (`fct`) field MUST also include the next Provider ECDH public key (to be used in Step 4) encoded as `did:key`. Having the next key in the UCAN places it inside the signature envelope, associating the next key with the Provider's UCAN DID.
 
 ``` javascript
 //JSON encoded
@@ -320,13 +306,13 @@ If more than one `awake/nextdid` field is set, the lowest-indexed one MUST be us
 
 ### 3.3.2 Payload
 
-To start the Double Ratchet, the payload in this stage has the highest number of cleartext fields. Note that the value in the `iss` field contain the temporary ECDH DIDs, and MUST NOT use the Responder's actual long-term DID. Conversely, the UCAN inside the encrypted payload MUST use the Responder's long-term DID.
+To start the Double Ratchet, the payload in this stage has the highest number of cleartext fields. Note that the value in the `iss` field contain the temporary ECDH DIDs, and MUST NOT use the Provider's actual long-term DID. Conversely, the UCAN inside the encrypted payload MUST use the Provider's long-term DID.
 
 | Field  | Value         | Description                                                                              | Required |
 | ------ | ------------- | ---------------------------------------------------------------------------------------- | -------- |
 | `awv`  | `"0.3.0"`     | AWAKE message version                                                                    | Yes      |
-| `type` | `"awake/res"` | "Responder's Auth" step message type                                                     | Yes      |
-| `iss`  |               | Responder's ECDH P-256 DID                                                               | Yes      |
+| `type` | `"awake/res"` | "Provider's Auth" step message type                                                     | Yes      |
+| `iss`  |               | Provider's ECDH P-256 DID                                                               | Yes      |
 | `aud`  |               | The ECDH P-256 DID signalled by the Requestor in [§3.2](#32-requestor-broadcasts-intent) | Yes      | 
 | `msg`  |               | AES-GCM-encrypted validation UCAN                                                        | Yes      |
 
@@ -347,7 +333,7 @@ To start the Double Ratchet, the payload in this stage has the highest number of
 **NOTE: The Requestor is not yet trusted at this step, and MUST be treated as a possible impersonator or PITM**
 
 ```
-Requestor                  Responder
+Requestor                  Provider
     ⋮                          ⋮
     │        Actual DID        │ (4a)
     │        & Challenge       │ (4b)
@@ -355,9 +341,9 @@ Requestor                  Responder
     ⋮                          ⋮
 ```
 
-At this stage, the Responder has been validated, but the Requestor is still untrusted. The Requestor now MUST provide their actual DID over the secure channel, and MUST prove that they are a trusted party rather than a PITM, eavesdropper, or phisher. This is accomplished in a single message.
+At this stage, the Provider has been validated, but the Requestor is still untrusted. The Requestor now MUST provide their actual DID over the secure channel, and MUST prove that they are a trusted party rather than a PITM, eavesdropper, or phisher. This is accomplished in a single message.
 
-The Requestor MUST provide the proof of authorization set by the Responder payload in [§3.3.2](#332-validation-ucan). The RECOMMENDED authorization methods are PIN validation (`pin`) and UCAN (`ucan`). Note that if the Requestor does not know how to respond to fulfill an authorization method, the AWAKE connection MUST fail with an [`unknown-challenge` message](#62-unknown-challenge-error).
+The Requestor MUST provide the proof of authorization set by the Provider payload in [§3.3.2](#332-validation-ucan). The RECOMMENDED authorization methods are PIN validation (`pin`) and UCAN (`ucan`). Note that if the Requestor does not know how to respond to fulfill an authorization method, the AWAKE connection MUST fail with an [`unknown-challenge` message](#62-unknown-challenge-error).
 
 When using PIN validation, it is RECOMMENDED that the handshake fail after a maximum number of failed validation attempts, or the attempts be rate limited with exponential backoff.
 
@@ -401,11 +387,11 @@ The PIN values MUST be within the UTF-8 character set. The PIN MUST be included 
 
 #### 3.4.2.3 Direct UCAN Challenge
 
-If UCAN auth is required by the Responder, the Requestor MUST provide a UCAN. This is the same strategy as the one used by the Responder in [§3.3](#33-responder-es tablishes-point-to-point-session): the UCAN MUST be encrypted with the session key and the IV from the enclosing payload, MUST be given in a raw format, and MUST be inline (without a JSON object wrapper or similar).
+If UCAN auth is required by the Provider, the Requestor MUST provide a UCAN. This is the same strategy as the one used by the Provider in [§3.3](#33-responder-es tablishes-point-to-point-session): the UCAN MUST be encrypted with the session key and the IV from the enclosing payload, MUST be given in a raw format, and MUST be inline (without a JSON object wrapper or similar).
 
-The UCAN MUST be issued (`iss`) by the Requestor's DID (not the temporary DID), and its audience (`aud`) MUST be the Responder's DID. The `att` field MUST be set to an empty array (i.e. it MUST NOT delegate any capabilities). The `prf` array MUST fulfill the capabilities set by the Responder.
+The UCAN MUST be issued (`iss`) by the Requestor's DID (not the temporary DID), and its audience (`aud`) MUST be the Provider's DID. The `att` field MUST be set to an empty array (i.e. it MUST NOT delegate any capabilities). The `prf` array MUST fulfill the capabilities set by the Provider.
 
-This MAY be used to prove that the Requestor has the same capabilities that the Requestor required from the Responder to start the handshake, such as when enforcing a minimum security clearance or proving functional equivalence between a single user's trusted devices.
+This MAY be used to prove that the Requestor has the same capabilities that the Requestor required from the Provider to start the handshake, such as when enforcing a minimum security clearance or proving functional equivalence between a single user's trusted devices.
 
 ```
               UCAN Auth
@@ -415,7 +401,7 @@ This MAY be used to prove that the Requestor has the same capabilities that the 
 │  ┌────────────UCAN───────────┐  │
 │  │                           │  │
 │  │  iss: RequestorActualDid  │  │
-│  │  aud: ResponderActualDid  │  │
+│  │  aud: ProviderActualDid  │  │
 │  │  fct: nextReqECDH         │  │
 │  │  att: []                  │  │
 │  │  prf: ...                 │  │
