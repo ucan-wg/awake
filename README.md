@@ -399,6 +399,8 @@ PRev coauthors:
 
 This is absolutely an option! However, it would require implementing a special case. Such a system could arguably be more efficient when the number of messages is extremely small, but having one well tested library that could handle more use cases was more strongly indicated in this revision of the spec.
 
+## 7.2 Why not use more established cryptography, such as P-256 or RSA?
+
 <!-- External Links -->
 
 [AKE]: https://en.wikipedia.org/wiki/Authenticated_Key_Exchange
