@@ -12,4 +12,3 @@ jobs:
         use-quiet-mode: 'yes'
         check-modified-files-only: 'yes'
         base-branch: 'main'
-        config-file: 'linkcheck.cfg.json'
