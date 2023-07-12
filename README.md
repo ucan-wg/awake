@@ -66,6 +66,41 @@ AWAKE MUST use [HKDF] to derive keys. Key derivation in the AWAKE handshake MUST
 FIXME
 
 
+``` mermaid
+flowchart
+    subgraph Asymmetric Keys
+        AliceSK[[Local X25519 Secret Key]]
+        BobPK[[Remote X25519 Public Key]]
+    end
+
+    subgraph KDF
+        ECDH(ECDH Shared Secret)
+        HKDF(HKDF)
+        Split{Split}
+        XCC(XChaCha Key)
+        IV(Unique IV)
+        Next(Next Shared Secret)
+    end
+
+    Message[[Encrypted Message]]
+
+    AliceSK --> ECDH
+    BobPK --> ECDH
+
+    ECDH --> HKDF
+
+    HKDF --> Split
+
+    Split -->|Bytes 0-31| XCC
+    Split -->|Bytes 32-55| IV
+    Split -.->|Bytes 56-87| Next
+
+    XCC -->|encrypt/decrypt| Message
+    IV -->|encrypt/decrypt| Message
+
+    Next -.-> HKDF
+```
+
 
 
 
@@ -396,7 +431,7 @@ This is absolutely an option! However, it would require implementing a special c
 
 ## 8.2 Why not use FIPS-certified cryptography, such as P-256, RSA, and AES-GCM?
 
-AWAKE as specified uses the best practies at time of writing.
+AWAKE as specified uses the best practies at time of writing. They are used in MLS, TLS, and more.
 
 RSA is widely deployed, but the key sizes are becoming quite large for an acceptable level of security. The NIST elliptic curves (such as P-256) have suspicious parameters that have lead to [concerns over the presence of a backdoor][SafeCurves]. AES is widely used, but is more suseptible to being used incorrectly than XChaCha.
 
@@ -408,7 +443,7 @@ At time of writing, there is active effort in [bringing Ed25519/X25519 to the We
 
 Both HKDF and BLAKE3's KDF mode are widely accepted as being very good key derivation functions. MLS uses HKDF under the hood, and adding more primitives mainly adds to the package size for implementations.
 
-## 8.4 Is AWAKE quantum-secure
+## 8.4 Is AWAKE quantum-secure?
 
 Many of the cryptographic algorithms uses in AWAKE are suseptible to a hypothetical quantum computer of sufficient size. We are waiting for at least the NIST Post-Quantum Cryptography Standardization recommendations before updating the protocol's cryptography to account for this attack vector.
 
