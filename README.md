@@ -50,7 +50,7 @@ All keys SHOULD be non-extractable where possible.
 
 UCAN MUST be used as the handshake signature envelope for AWAKE. Any UCAN-compatible asymmetric key MAY be used for signatures, including RSA, EdDSA, ECDSA, and so on.
 
-The [ECDH handshake][ECDH Input] MUST use [X25519].
+[ECDH handshakes][Authorize Provider] MUST use [X25519].
 
 ### 2.1.1 Symmetric Keys
 
@@ -58,7 +58,7 @@ All symmetric encryption in the pre-MLS AWAKE handshake MUST use [XChaCha-Poly13
 
 Each encrypted payload MUST include a unique 24-byte [initialization vector][IV].
 
-### 2.1.2 Diffie-Hellman Key Derivation
+### 2.1.2 Key Derivation
 
 AWAKE MUST use [HKDF] to derive keys. The shared secret MUST be generated using [X25519]. Non-extractable keys SHOULD be used where available. The sender MUST rotate their public key on every new session.
 
@@ -78,7 +78,7 @@ const pseudorandomBits = hkdf.generateBits({
 const [XChaChaKey, iv, nextSecret] = pseudorandomBits.splitKeysAndIv()
 ```
 
-Note that AWAKE key derivation step MUST [omit the the info parameter][HDKF Randomness], since no input secret is available.
+Note that AWAKE key derivation step MUST [omit the the info parameter][HKDF Randomness], since no input secret is available.
 
 ``` mermaid
 flowchart
@@ -202,7 +202,7 @@ Where possible, it is RECOMMENDED that the private key be non-extractable.
 
 ### 5.1.2 Authorization Criteria
 
-The Requestor MAY also include validation criteria expected from the Provider. This MUST be passed as a map of [UCAN capabilities]. The Provider MUST be able to prove access to these capabilities in [their resposne].
+The Requestor MAY also include validation criteria expected from the Provider. This MUST be passed as a map of [UCAN capabilities]. The Provider MUST be able to prove access to these capabilities in [their response][Authorize Provider].
 
 If no capabilties are required, the `caps` field MUST be set to an empty map (`{}`).
 
@@ -359,7 +359,7 @@ If more than one `awake/challenge` field is set, the lowest-indexed one MUST be 
 
 At this stage, the Provider has been validated, but the Requestor is still untrusted. The Requesytor now has enough trust in the Provider to intiate an MLS session.
 
-The Requestor now MUST provide their actual DID over the secure channel, and MUST prove that they are a trusted party rather than a PITM, eavesdropper, or phisher. This is accomplished in the [MLS Certificate] step.
+The Requestor now MUST provide their actual DID over the secure channel, and MUST prove that they are a trusted party rather than a PITM, eavesdropper, or phisher. This is accomplished in the [MLS Credentials] step.
 
 > In order to ensure that MLS provides meaningful authentication it is important that each member is able to authenticate some identity information for each other member. Identity information is encoded in Credentials, so this property is provided by ensuring that members use compatible credential types.
 >
@@ -380,7 +380,7 @@ sequenceDiagram
         Requestor ->> Provider: MLS Handshake (UCAN or Challenge)
 ```
 
-The Requestor MUST provide the proof of authorization set by the Provider payload in [§3.3.2]. The RECOMMENDED authorization methods are PIN validation (`pin`) and UCAN (`ucan`).
+The Requestor MUST provide the proof of authorization set by the [Provider payload][Provider challenge]. The RECOMMENDED authorization methods are PIN validation (`pin`) and UCAN (`ucan`).
 
 It is RECOMMENDED that the handshake fail after a maximum number of failed validation attempts, or the attempts be rate limited with exponential backoff.
 
@@ -404,7 +404,7 @@ The PIN values MUST be within the UTF-8 character set. The PIN MUST be included 
 
 #### 5.3.1.2 Direct UCAN Challenge
 
-If UCAN auth is required by the Provider, the Requestor MUST provide a UCAN. This is the same strategy as the one used by the Provider in [§3.3]: the UCAN MUST be encrypted with the session key and the IV from the enclosing payload, MUST be given in a raw format, and MUST be inline (without a JSON object wrapper or similar).
+If UCAN auth is required by the Provider, the Requestor MUST provide a UCAN. This MUST be the same challenge strategy as the one set in the [Provider's payload][Provider challenge]: the UCAN MUST be encrypted with the session key and the IV from the enclosing payload, MUST be given in a raw format, and MUST be inline (without a JSON object wrapper or similar).
 
 The UCAN MUST be issued (`iss`) by the Requestor's DID (not the temporary DID), and its audience (`aud`) MUST be the Provider's DID. The `att` field MUST be set to an empty array (i.e. it MUST NOT delegate any capabilities). The `prf` array MUST fulfill the capabilities set by the Provider.
 
@@ -468,15 +468,20 @@ Many of the cryptographic algorithms uses in AWAKE are suseptible to a hypotheti
 [Double Ratchet]: https://signal.org/docs/specifications/doubleratchet/
 [Elliptic Curve Diffie-Hellman]: https://en.wikipedia.org/wiki/Elliptic-curve_Diffie%E2%80%93Hellman
 [Fission]: https://fission.codes
+[HKDF Randomness]: https://soatok.blog/2021/11/17/understanding-hkdf#how-should-you-introduce-randomness-into-hkdf
 [HKDF]: https://datatracker.ietf.org/doc/html/rfc5869
 [IV]: https://en.wikipedia.org/wiki/Initialization_vector
 [MLS Protocol Specification]: https://messaginglayersecurity.rocks/mls-protocol/draft-ietf-mls-protocol.html
 [MLS]: https://messaginglayersecurity.rocks/
+[MLS Credentials]: https://messaginglayersecurity.rocks/mls-protocol/draft-ietf-mls-protocol.html#name-credentials
 [Quinn Wilton]: https://github.com/QuinnWilton
 [RFC 2119]: https://datatracker.ietf.org/doc/html/rfc2119
+[SafeCurves]: https://safecurves.cr.yp.to/
+[Secure Curves in WebCrypto]: https://blogs.igalia.com/jfernandez/2023/06/20/secure-curves-in-the-web-cryptography-api/
 [Signal Protocol]: https://github.com/signalapp/libsignal
 [UCAN capabilities]: https://github.com/ucan-wg/spec/#25-capability
 [UCAN]: https://github.com/ucan-wg/spec
+[WebCrypto API]: https://developer.mozilla.org/en-US/docs/Web/API/Web_Crypto_API
 [WireGuard]: https://www.wireguard.com/
 [X25519]: https://cryptography.io/en/latest/hazmat/primitives/asymmetric/x25519/
 [XChaCha-Poly1305]: https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-xchacha
@@ -485,9 +490,9 @@ Many of the cryptographic algorithms uses in AWAKE are suseptible to a hypotheti
 [local-first]: https://www.inkandswitch.com/local-first/
 [mTLS]: https://datatracker.ietf.org/doc/html/rfc8705
 [mutual authentication]: https://en.wikipedia.org/wiki/Mutual_authentication
-[SafeCurves]: https://safecurves.cr.yp.to/
-[Secure Curves in WebCrypto]: https://blogs.igalia.com/jfernandez/2023/06/20/secure-curves-in-the-web-cryptography-api/
-[HKDF Randomness]: https://soatok.blog/2021/11/17/understanding-hkdf#how-should-you-introduce-randomness-into-hkdf
 
 <!-- Internal Links -->
 
+[Authorize Provider]: #52-authorize-provider
+[AWAKE KDF]: #212-key-derivation
+[Provider challenge]: https://github.com/ucan-wg/awake/blob/mls/README.md#5221-challenge
