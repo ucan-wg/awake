@@ -60,11 +60,25 @@ Each encrypted payload MUST include a unique 24-byte [initialization vector][IV]
 
 ### 2.1.2 Diffie-Hellman Key Derivation
 
-AWAKE MUST use [HKDF] to derive keys. Key derivation in the AWAKE handshake MUST use the following algorithms:
+AWAKE MUST use [HKDF] to derive keys. Key derivation in the AWAKE handshake MUST use the following algorithm:
 
+``` javascript
+// JS-flavored Pseudocode
 
-FIXME
+const ecdhSecret = ecdh(aliceSk, bobPk)
+const awakeTag = 0x4157414B452D5543414E // "AWAKE-UCAN" as hex
+const pseudorandomBits = hkdf.generateBits({
+  ecdhSecret, 
+  salt: initialRequestorPublicKey,
+  info: awakeTag, // No secret concatenated onto the tag
+  bitLength: 608
+})
+const [XChaChaKey, iv, nextSecret] = pseudorandomBits.splitKeysAndIv()
+```
 
+The shared secret MUST be generated using [X25519]. Non-extractable keys SHOULD be used where available. The sender MUST rotate their public key on every send.
+
+This step MUST [omit the the info parameter][HDKF Randomness], since no input secret is available.
 
 ``` mermaid
 flowchart
@@ -100,11 +114,6 @@ flowchart
 
     Next -.-> HKDF
 ```
-
-
-
-
-The shared secret MUST be generated using [X25519]. Non-extractable keys SHOULD be used where available. The sender MUST rotate their public key on every send.
 
 ## 2.2 Messagaging Layer Security
 
@@ -478,6 +487,7 @@ Many of the cryptographic algorithms uses in AWAKE are suseptible to a hypotheti
 [mutual authentication]: https://en.wikipedia.org/wiki/Mutual_authentication
 [SafeCurves]: https://safecurves.cr.yp.to/
 [Secure Curves in WebCrypto]: https://blogs.igalia.com/jfernandez/2023/06/20/secure-curves-in-the-web-cryptography-api/
+[HKDF Randomness]: https://soatok.blog/2021/11/17/understanding-hkdf#how-should-you-introduce-randomness-into-hkdf
 
 <!-- Internal Links -->
 
