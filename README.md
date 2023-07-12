@@ -450,6 +450,10 @@ All errors MUST use the generic [AWAKE message payload](#4-secure-session), and 
 
 Many thanks to [Brian Ginsburg] for his exploration of AWAKE and suggestion to recommend backoff on PIN attempts.
 
+PRev coauthors:
+- Quinn
+- Daniel
+
 <!-- External Links -->
 
 [AKE]: https://en.wikipedia.org/wiki/Authenticated_Key_Exchange
@@ -458,7 +462,7 @@ Many thanks to [Brian Ginsburg] for his exploration of AWAKE and suggestion to r
 [Brian Ginsburg]: https://github.com/bgins
 [Brooklyn Zelenka]: https://github.com/expede
 [Daniel Holmgren]: https://github.com/dholms
-[Double Ratchet]: https://signal.org/docs/specifications/doubleratchet/) to secure messages
+[Double Ratchet]: https://signal.org/docs/specifications/doubleratchet/
 [Elliptic Curve Diffie-Hellman]: https://en.wikipedia.org/wiki/Elliptic-curve_Diffie%E2%80%93Hellman
 [Fission]: https://fission.codes
 [MLS]: https://messaginglayersecurity.rocks/
