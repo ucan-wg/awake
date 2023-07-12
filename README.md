@@ -30,23 +30,11 @@ Applications in the client/server model typically use a certificate authorty to 
 
 Authorization on its own is no longer sufficient for this situation: it is entirely possible validate _who_ a responder, but the more relevant information is _what they have access to._ For instance, are they a member of a group message, can read from a particular database, or send email from a certain address.
 
-## 1.2 Generality
+## 1.2 Approach
 
+Rather than building multiple tools for specialized use cases, the appraoch is to take high quality components that solve for the general case and add the minimal number of additions to fit the AWAKE context. To the largest degree possible, AWAKE composes existing protocols and tools.
 
-
-
-
-[UCAN] allows for the representation of authority both with and without delegation.
-
-
-
-
-
-## 1.3 Approach
-
-Off the shelf components
-
-
+[MLS] is currently the best vetted secure channel that includes P2P group management. [UCAN] allows for the representation of authority both with and without delegation, and is well suited for P2P and local-first use cases. By combining standards these with a thin layer of standard cryptographic patterns, AWAKE attempts to take the advanatges of both while introducing the minimum of additional specification and implementation overhead.
 
 # 2 Encryption
 
@@ -384,28 +372,31 @@ flowchart LR
         UCAN["UCAN
             iss: RequestorActualDid,
             aud: ProviderActualDid,&nbsp;
-            fct: nextReqECDH,&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
             att: [],&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
             prf: ...&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
         "]
     end
 ```
 
-# 6. Acknowledgements
+# 6. MLS Session
+
+Proceed with MLS as normal.
+
+# 7. Acknowledgements
 
 Thanks to [Quinn Wilton] and [Daniel Holmgren] for their many contributions to previous version of this spec. While the spec has evolved significantly since then, their thinking drove much of the philosophy underlying the current version.
 
 Many thanks to [Brian Ginsburg] for his exploration of AWAKE and suggestion to recommend backoff on requestor authorization attempts.
 
-# 7 FAQ
+# 8 FAQ
 
-## 7.1 Why not a variant without MLS for short sessions?
+## 8.1 Why not a variant without MLS for short sessions?
 
 This is absolutely an option! However, it would require implementing a special case. Such a system could arguably be more efficient when the number of messages is extremely small, but having one well tested library that could handle more use cases was more strongly indicated in this revision of the spec.
 
-## 7.2 Why not use more established cryptography, such as P-256 or RSA?
+## 8.2 Why not use more established cryptography, such as P-256 or RSA?
 
-## 7.3 Why HKDF instead of the BLAKE3 key derivation function?
+## 8.3 Why HKDF instead of the BLAKE3 key derivation function?
 
 <!-- External Links -->
 
