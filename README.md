@@ -1,23 +1,5 @@
 # Authorized Wire for Authenticated Key Exchange (AWAKE) Specification v0.3.0 
 
-
-
-
-
--- FIXME name
-
-
-
-TODOs
-
-
-
-
-- Note Zero Trust security somewhere in here
-
-
-
-
 <img src="./assets/awake.png" height="500px" />
 
 ## Editors
@@ -26,8 +8,6 @@ TODOs
 
 ## Authors
 
-* [Daniel Holmgren], [Bluesky]
-* [Quinn Wilton], [Fission]
 * [Brooklyn Zelenka], [Fission]
 
 # 0. Abstract
@@ -46,7 +26,7 @@ Capability-based systems have a helpful philosophy towards a third path. By emph
 
 ## 1.1 Motivation
 
-Applications in the client/server model typically use a certificate authorty to root their trust. This presupposes that the client is able to dial the correct resource and ask for them to authenticate. The situation is somewhat more complex in P2P and local-first applications operating on open channels, where location is independent and eventual consistecy allows for unlimited forking of resource access.
+Applications in the client/server model typically use a certificate authorty to root their trust. This presupposes that the client is able to dial the correct resource and ask for them to authenticate. The situation is somewhat more complex in P2P, [zero trust][ZTA], and [local-first] applications operating on open channels, where location is independent and eventual consistecy allows for unlimited forking of resource access.
 
 Authorization on its own is no longer sufficient for this situation: it is entirely possible validate _who_ a responder, but the more relevant information is _what they have access to._ For instance, are they a member of a group message, can read from a particular database, or send email from a certain address.
 
@@ -492,6 +472,8 @@ Many thanks to [Brian Ginsburg] for his exploration of AWAKE and suggestion to r
 [XChaCha-Poly1305]: https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-xchacha
 [`did:key`]: https://w3c-ccg.github.io/did-method-key/#ed25519-x25519
 [IV]: https://en.wikipedia.org/wiki/Initialization_vector
+[ZTA]: https://en.wikipedia.org/wiki/Zero_trust_security_model
+[local-first]: https://www.inkandswitch.com/local-first/
 [mTLS]: https://datatracker.ietf.org/doc/html/rfc8705
 [mutual authentication]: https://en.wikipedia.org/wiki/Mutual_authentication
 <!-- Internal Links -->
