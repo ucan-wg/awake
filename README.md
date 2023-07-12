@@ -471,9 +471,9 @@ Many of the cryptographic algorithms uses in AWAKE are suseptible to a hypotheti
 [HKDF Randomness]: https://soatok.blog/2021/11/17/understanding-hkdf#how-should-you-introduce-randomness-into-hkdf
 [HKDF]: https://datatracker.ietf.org/doc/html/rfc5869
 [IV]: https://en.wikipedia.org/wiki/Initialization_vector
+[MLS Credentials]: https://messaginglayersecurity.rocks/mls-protocol/draft-ietf-mls-protocol.html#name-credentials
 [MLS Protocol Specification]: https://messaginglayersecurity.rocks/mls-protocol/draft-ietf-mls-protocol.html
 [MLS]: https://messaginglayersecurity.rocks/
-[MLS Credentials]: https://messaginglayersecurity.rocks/mls-protocol/draft-ietf-mls-protocol.html#name-credentials
 [Quinn Wilton]: https://github.com/QuinnWilton
 [RFC 2119]: https://datatracker.ietf.org/doc/html/rfc2119
 [SafeCurves]: https://safecurves.cr.yp.to/
@@ -493,6 +493,6 @@ Many of the cryptographic algorithms uses in AWAKE are suseptible to a hypotheti
 
 <!-- Internal Links -->
 
-[Authorize Provider]: #52-authorize-provider
 [AWAKE KDF]: #212-key-derivation
+[Authorize Provider]: #52-authorize-provider
 [Provider challenge]: https://github.com/ucan-wg/awake/blob/mls/README.md#5221-challenge
