@@ -163,7 +163,7 @@ sequenceDiagram
         Requestor ->> Provider: 1.1 Temp X25519 DID & Auth criterea
 ```
 
-### 5.2.1 Temporary ECDH DID
+### 5.1.1 Temporary ECDH DID
 
 Since this message is sent entirely in the clear, the Requestor MUST generate a fresh X25519 key pair per AWAKE initialization attempt. This key MUST be used as the first step in the ECDH Double Ratchet. In the payload, the public key MUST be formatted as a [`did:key`].
 
@@ -171,13 +171,13 @@ This temporary key MUST only be used for key exchange, and MUST NOT be used for 
 
 Where possible, it is RECOMMENDED that the private key be non-extractable.
 
-### 5.2.2 Authorization Criteria
+### 5.1.2 Authorization Criteria
 
 The Requestor MAY also include validation criteria expected from the Provider. This MUST be passed as a map of [UCAN capabilities]. The Provider MUST be able to prove access to these capabilities in [their resposne].
 
 If no capabilties are required, the `caps` field MUST be set to an empty map (`{}`).
 
-### 5.2.3 Payload
+### 5.1.3 Payload
 
 | Field  | Value          | Description                                    | Required |
 | ------ | -------------- | ---------------------------------------------- | -------- |
@@ -186,7 +186,7 @@ If no capabilties are required, the `caps` field MUST be set to an empty map (`{
 | `did`  |                | The Requestor's initial (temp) ECDH P-256      | Yes      |
 | `caps` |                | Capabilities that the Provider MUST provide   | Yes      |
 
-#### 3.2.3.1 JSON Example
+#### 5.1.3.1 JSON Example
 
 ``` javascript
 {
@@ -206,7 +206,7 @@ If no capabilties are required, the `caps` field MUST be set to an empty map (`{
 }
 ```
 
-## 3.3 Provider Establishes Point-to-Point Session
+## 5.2 Provider Establishes Point-to-Point Session
 
 **NOTE: The Provider is not yet trusted at this step, and MUST be treated as a possible impersonator or [PITM](https://en.wikipedia.org/wiki/Man-in-the-middle_attack)**
 
@@ -219,42 +219,79 @@ sequenceDiagram
         Provider ->> Requestor: ECDH🔐(Nullipotent UCAN & channel info)
 ```
 
-In this step, the Provider MUST prove that they have access to the requested resources. This is used to establish trust in the capabilities of the Provider, but MUST NOT actually delegate anything. This UCAN MUST contain the Requestor's temporary ECDH DID in the `aud` field. The `iss` field MUST contain the Provider's actual DID (i.e. not a temporary ECDH DID).
+In this step, the Provider MUST prove that they have access to the requested resources. This establishes trust in the UCAN capabilities of the Provider, but MUST NOT actually delegate anything. This UCAN MUST contain the Requestor's temporary X25519 DID in the `aud` field. The `iss` field MUST contain the Provider's actual DID (i.e. not a temporary X25519 DID).
+
+
+
+
+
 
 This step starts the Double Ratchet. The Provider MUST generate a fresh ECDH P-256 key pair. This MUST be combined with the Requestor's ECDH public key to generate a 256-bit AES key, which MUST be used to encrypt the private payload. The Requestor SHOULD accept multiple concurrent connection attempts on this request DID, at least until the handshake is complete.
 
-The payload contains two encryption layers and a signature: the ECDH components, the AES envelope, and the capability proof signed by the Provider's "true" DID.
+The payload contains two encryption layers and a signature: the ECDH components, the XChaCha-Poly1305 envelope, and the capability proof signed by the Provider's "true" DID.
 
-NB this is the first step of the double ratchet / KDF, as explained in [§1.5.1.1](#double-ratchet-initialization).
 
-FIXME derive IV or use random?
+
+
+
 
 ``` mermaid
-flowchart TD
-    XCC["HKDF(X25519 Shared Secret) = (IV, ChaCha Key)"]
+flowchart LR
+    XCC["HKDF(X25519 Shared Secret) = (IV, Key)"]
+    ReqTempSK["Requestor Temp\nX25519 Secret Key"]
 
-    subgraph Env [Encrypted XChaCha-Poly1305 Envelope]
-        ucan["UCAN
-            iss: ProviderDID
-            aud:ReqECDH&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-            att: []&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-            fct: [challenge]&nbsp;&nbsp;&nbsp;
-            prf: ...&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-        "]
+    subgraph Payload
+        ProvTempPK["Provider's Temp\nX25519 DID"]
+
+        subgraph Env [Encrypted Envelope]
+            ucan["UCAN
+                iss: ProviderDID&nbsp;&nbsp;&nbsp;&nbsp;
+                aud: ReqECDH&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                att: []&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                fct: [challenge]&nbsp;&nbsp;&nbsp;
+                prf: ...&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+            "]
+        end
     end
 
-    XCC -.-> Env
+    ReqTempSK -..->|1/2| XCC
+    ProvTempPK -.->|1/2| XCC
+    XCC --->|decrypts| Env
 ```
 
 Upon receipt, the Requestor MUST validate that the UCAN capabilities in the proof fulfill their `caps` criteria. The UCAN itself MUST be valid, unrevoked, unexpired, and intended for the temporary DID (the `aud` field). If any of these checks fail, the session MUST be abandoned, the temporary DID regenerated, and the protocol restarted from [intention broadcast](#32-requestor-broadcasts-intent).
 
-### 3.3.1 Validation UCAN
+### 5.2.2 Payload
 
-The validation UCAN MUST NOT be used to delegate any capabilities. This UCAN MUST only be used to prove access to capabilities and sign the next ECDH public key. The `att` and `my` fields MUST be empty arrays. The issuer (`iss`) field MUST contain the Provider's long-term DID (rather than the temporary ECDH DID). The audience (`aud`) field MUST contain the Requestor's temporary ECDH DID from [§3.2](#32-requestor-broadcasts-intent).
+To start the Double Ratchet, the payload in this stage has the highest number of cleartext fields. Note that the value in the `iss` field contain the temporary ECDH DIDs, and MUST NOT use the Provider's actual long-term DID. Conversely, the UCAN inside the encrypted payload MUST use the Provider's long-term DID.
 
-This UCAN MUST be encrypted with the [KDF-generated AES-GCM key](#143-diffie-hellman-key-derivation) plus IV before being placed into the payload in [§3.3.2](#332-payload).
+| Field  | Value         | Description                                                                              | Required |
+| ------ | ------------- | ---------------------------------------------------------------------------------------- | -------- |
+| `awv`  | `"0.3.0"`     | AWAKE message version                                                                    | Yes      |
+| `type` | `"awake/res"` | "Provider's Auth" step message type                                                      | Yes      |
+| `iss`  |               | Provider's temporary ECDH X25519 DID                                                     | Yes      |
+| `aud`  |               | The X25519 DID signalled by the Requestor in [§3.2](#32-requestor-broadcasts-intent)     | Yes      |  FIXME!!!!!!!!!!!!!!!!
+| `msg`  |               | Nullipotent validation UCAN encrypted with XChaCha-Poly1305                              | Yes      |
 
-#### 3.3.1.1 Challenge
+#### 5.2.2.1 JSON Example
+
+``` javascript
+{
+  "awv": "0.3.0",
+  "type": "awake/res",
+  "iss": responderStep3EcdhDid,
+  "aud": requestorStep2EcdhDid,
+  "msg": encryptedUcan 
+}
+```
+
+### 5.2.1 Nullipotent UCAN
+
+The Provider's UCAN MUST NOT be used to delegate any capabilities to the Requestor at this stage. This UCAN MUST only be used to prove access to capabilities. The issuer (`iss`) field MUST contain the Provider's long-term DID (rather than the temporary ECDH DID). The audience (`aud`) field MUST contain the Requestor's _temporary_ ECDH DID from the previous step.
+
+This UCAN MUST be encrypted with a HKDF-generated XChaCha-Poly1305 key plus IV before being placed into the payload (below).
+
+#### 5.2.1.1 Challenge
 
 The Provider MUST set the method of challenge to validate the Requestor. This MUST be set in the `fct` section of the UCAN so that it is signed by the Provider. The RECOMMENDED authorization methods are out-of-band PIN validation (`oob-pin`) and UCAN (`ucan`).
 
@@ -287,48 +324,13 @@ To set the challenge as `ucan`, the `fct` section of the UCAN MUST include the f
 
 If more than one `awake/challenge` field is set, the lowest-indexed one MUST be used.
 
-#### 3.3.1.2 Next Provider ECDH
+## 5.3 MLS Handshake
 
-The UCAN's facts (`fct`) field MUST also include the next Provider ECDH public key (to be used in Step 4) encoded as `did:key`. Having the next key in the UCAN places it inside the signature envelope, associating the next key with the Provider's UCAN DID.
+At this stage, the Provider has been validated, but the Requestor is still untrusted. The Requesytor now has enough trust in the Provider to intiate an MLS session.
 
-``` javascript
-//JSON encoded
-{
-  ...,
-  "fct": [
-    ...,
-    {"awake/nextdid": step4EcdhDid}
-  ]
-}
-```
+The Requestor now MUST provide their actual DID over the secure channel, and MUST prove that they are a trusted party rather than a PITM, eavesdropper, or phisher. This is accomplished in the [MLS Certificate] step.
 
-If more than one `awake/nextdid` field is set, the lowest-indexed one MUST be used.
-
-### 3.3.2 Payload
-
-To start the Double Ratchet, the payload in this stage has the highest number of cleartext fields. Note that the value in the `iss` field contain the temporary ECDH DIDs, and MUST NOT use the Provider's actual long-term DID. Conversely, the UCAN inside the encrypted payload MUST use the Provider's long-term DID.
-
-| Field  | Value         | Description                                                                              | Required |
-| ------ | ------------- | ---------------------------------------------------------------------------------------- | -------- |
-| `awv`  | `"0.3.0"`     | AWAKE message version                                                                    | Yes      |
-| `type` | `"awake/res"` | "Provider's Auth" step message type                                                     | Yes      |
-| `iss`  |               | Provider's ECDH P-256 DID                                                               | Yes      |
-| `aud`  |               | The ECDH P-256 DID signalled by the Requestor in [§3.2](#32-requestor-broadcasts-intent) | Yes      | 
-| `msg`  |               | AES-GCM-encrypted validation UCAN                                                        | Yes      |
-
-#### 3.3.3.1 JSON Example
-
-``` javascript
-{
-  "awv": "0.3.0",
-  "type": "awake/res",
-  "iss": responderStep3EcdhDid,
-  "aud": requestorStep2EcdhDid,
-  "msg": encryptedUcan 
-}
-```
-
-## 3.4. Requestor Challenge
+## 5.3.1 Requestor Challenge
 
 **NOTE: The Requestor is not yet trusted at this step, and MUST be treated as a possible impersonator or PITM**
 
@@ -340,8 +342,6 @@ Requestor                  Provider
     ├─────────────────────────►│
     ⋮                          ⋮
 ```
-
-At this stage, the Provider has been validated, but the Requestor is still untrusted. The Requestor now MUST provide their actual DID over the secure channel, and MUST prove that they are a trusted party rather than a PITM, eavesdropper, or phisher. This is accomplished in a single message.
 
 The Requestor MUST provide the proof of authorization set by the Provider payload in [§3.3.2](#332-validation-ucan). The RECOMMENDED authorization methods are PIN validation (`pin`) and UCAN (`ucan`). Note that if the Requestor does not know how to respond to fulfill an authorization method, the AWAKE connection MUST fail with an [`unknown-challenge` message](#62-unknown-challenge-error).
 
@@ -355,7 +355,6 @@ This message MUST be encrypted with the first AES output of the AWAKE [KDF](#143
 | ------ | ----------------------------------------- | -------------------------------------------------------------- | -------- |
 | `awv`  | `"0.3.0"`                                 | AWAKE message version                                          | Yes      |
 | `type` | `"awake/msg"`                             | Generic AWAKE message type                                     | Yes      |
-| `mid`  | `sha256(reqStep2EcdhPk + resStep3EcdhPk)` | Message ID                                                     | Yes      |
 | `msg`  |                                           | Fulfilled challenge payload encrypted with AES-derived AES key | Yes      |
 
 ``` javascript
@@ -393,22 +392,17 @@ The UCAN MUST be issued (`iss`) by the Requestor's DID (not the temporary DID), 
 
 This MAY be used to prove that the Requestor has the same capabilities that the Requestor required from the Provider to start the handshake, such as when enforcing a minimum security clearance or proving functional equivalence between a single user's trusted devices.
 
-```
-              UCAN Auth
-
-┌──────────────AES-GCM────────────┐
-│                                 │
-│  ┌────────────UCAN───────────┐  │
-│  │                           │  │
-│  │  iss: RequestorActualDid  │  │
-│  │  aud: ProviderActualDid  │  │
-│  │  fct: nextReqECDH         │  │
-│  │  att: []                  │  │
-│  │  prf: ...                 │  │
-│  │                           │  │
-│  └───────────────────────────┘  │
-│                                 │
-└─────────────────────────────────┘
+```mermaid
+flowchart LR
+    subgraph Envelope [XChaCha-Poly1305 Envelope]
+        UCAN["UCAN
+            iss: RequestorActualDid,
+            aud: ProviderActualDid,&nbsp;
+            fct: nextReqECDH,&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+            att: [],&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+            prf: ...&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+        "]
+    end
 ```
 
 # 6 Errors
