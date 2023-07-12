@@ -284,13 +284,13 @@ Upon receipt, the Requestor MUST validate that the UCAN capabilities in the proo
 
 To start the Double Ratchet, the payload in this stage has the highest number of cleartext fields. Note that the value in the `iss` field contain the temporary ECDH DIDs, and MUST NOT use the Provider's actual long-term DID. Conversely, the UCAN inside the encrypted payload MUST use the Provider's long-term DID.
 
-| Field  | Value         | Description                                                                              | Required |
-| ------ | ------------- | ---------------------------------------------------------------------------------------- | -------- |
-| `awv`  | `"0.3.0"`     | AWAKE message version                                                                    | Yes      |
-| `type` | `"awake/res"` | "Provider's Auth" step message type                                                      | Yes      |
-| `iss`  |               | Provider's temporary ECDH X25519 DID                                                     | Yes      |
-| `aud`  |               | The X25519 DID signalled by the Requestor in [§3.2](#32-requestor-broadcasts-intent)     | Yes      |  FIXME!!!!!!!!!!!!!!!!
-| `msg`  |               | Nullipotent validation UCAN encrypted with XChaCha-Poly1305                              | Yes      |
+| Field  | Value         | Description                                                         | Required |
+| ------ | ------------- | ------------------------------------------------------------------- | -------- |
+| `awv`  | `"0.3.0"`     | AWAKE message version                                               | Yes      |
+| `type` | `"awake/res"` | "Provider's Auth" step message type                                 | Yes      |
+| `iss`  |               | Provider's temporary ECDH X25519 DID                                | Yes      |
+| `aud`  |               | The X25519 DID [signalled by the Requestor][Authorization Criteria] | Yes      | 
+| `msg`  |               | Nullipotent validation UCAN encrypted with XChaCha-Poly1305         | Yes      |
 
 #### 5.2.1.1 JSON Example
 
@@ -482,5 +482,6 @@ Many of the cryptographic algorithms uses in AWAKE are susceptible to a hypothet
 <!-- Internal Links -->
 
 [AWAKE KDF]: #212-key-derivation
+[Authorization Criteria]: #512-authorization-criteria
 [Authorize Provider]: #52-authorize-provider
 [Provider challenge]: #5221-challenge
