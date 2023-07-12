@@ -60,7 +60,9 @@ Each encrypted payload MUST include a unique 24-byte [initialization vector][IV]
 
 ### 2.1.2 Diffie-Hellman Key Derivation
 
-AWAKE MUST use [HKDF] to derive keys. Key derivation in the AWAKE handshake MUST use the following algorithm:
+AWAKE MUST use [HKDF] to derive keys. The shared secret MUST be generated using [X25519]. Non-extractable keys SHOULD be used where available. The sender MUST rotate their public key on every new session.
+
+Key derivation in the AWAKE handshake MUST use the following algorithm:
 
 ``` javascript
 // JS-flavored Pseudocode
@@ -76,9 +78,7 @@ const pseudorandomBits = hkdf.generateBits({
 const [XChaChaKey, iv, nextSecret] = pseudorandomBits.splitKeysAndIv()
 ```
 
-The shared secret MUST be generated using [X25519]. Non-extractable keys SHOULD be used where available. The sender MUST rotate their public key on every send.
-
-This step MUST [omit the the info parameter][HDKF Randomness], since no input secret is available.
+Note that AWAKE key derivation step MUST [omit the the info parameter][HDKF Randomness], since no input secret is available.
 
 ``` mermaid
 flowchart
