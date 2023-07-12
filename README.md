@@ -394,9 +394,23 @@ Many thanks to [Brian Ginsburg] for his exploration of AWAKE and suggestion to r
 
 This is absolutely an option! However, it would require implementing a special case. Such a system could arguably be more efficient when the number of messages is extremely small, but having one well tested library that could handle more use cases was more strongly indicated in this revision of the spec.
 
-## 8.2 Why not use more established cryptography, such as P-256 or RSA?
+## 8.2 Why not use FIPS-certified cryptography, such as P-256, RSA, and AES-GCM?
+
+AWAKE as specified uses the best practies at time of writing.
+
+RSA is widely deployed, but the key sizes are becoming quite large for an acceptable level of security. The NIST elliptic curves (such as P-256) have suspicious parameters that have lead to [concerns over the presence of a backdoor][SafeCurves]. AES is widely used, but is more suseptible to being used incorrectly than XChaCha.
+
+Many of the algoritms mentioned above are available as non-extractabe in the [WebCrypto API]. This is a definite advantage for certain attack vectors, such as 
+
+At time of writing, there is active effort in [bringing Ed25519/X25519 to the WebCrypto API][Secure Curves in WebCrypto]. Once this is complete, it is RECOMMENDED that all browser implementations make use of the non-extracabile functionality.
 
 ## 8.3 Why HKDF instead of the BLAKE3 key derivation function?
+
+Both HKDF and BLAKE3's KDF mode are widely accepted as being very good key derivation functions. MLS uses HKDF under the hood, and adding more primitives mainly adds to the package size for implementations.
+
+## 8.4 Is AWAKE quantum-secure
+
+Many of the cryptographic algorithms uses in AWAKE are suseptible to a hypothetical quantum computer of sufficient size. We are waiting for at least the NIST Post-Quantum Cryptography Standardization recommendations before updating the protocol's cryptography to account for this attack vector.
 
 <!-- External Links -->
 
@@ -427,7 +441,8 @@ This is absolutely an option! However, it would require implementing a special c
 [local-first]: https://www.inkandswitch.com/local-first/
 [mTLS]: https://datatracker.ietf.org/doc/html/rfc8705
 [mutual authentication]: https://en.wikipedia.org/wiki/Mutual_authentication
+[SafeCurves]: https://safecurves.cr.yp.to/
+[Secure Curves in WebCrypto]: https://blogs.igalia.com/jfernandez/2023/06/20/secure-curves-in-the-web-cryptography-api/
 
 <!-- Internal Links -->
 
-[ECDH Input]: #1431-ecdh-input
