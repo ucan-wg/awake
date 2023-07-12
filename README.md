@@ -42,7 +42,7 @@ Authorization on its own is no longer sufficient for this situation: it is entir
 
 
 
-## 1.3 Philosophy
+## 1.3 Approach
 
 Off the shelf components
 
@@ -50,19 +50,19 @@ Off the shelf components
 
 # 2 Encryption
 
-Encryption is core to securing a tunnel. Key material and secrets created for AWAKE MUST be considered ephemeral and MUST NOT be reused between sessions.
+Encryption is core to securing a tunnel. Temporary key material and secrets created for AWAKE MUST be considered ephemeral and MUST NOT be reused between sessions.
 
 While [MLS] is extremely robust, it does not allow for bidirectional authorization in the core protocol. Luckily, it is possible to extract this phase out to an AWAKE handshake ahead of starting a MLS.
 
 At a high-level, AWAKE uses a [X25519] envelope to handshake into an authorized [MLS] session to establish a secure message channel.
 
+All keys SHOULD be non-extractable where possible.
+ 
 ## 2.1 Asymmetric Keys
 
 UCAN MUST be used as the handshake signature envelope for AWAKE. Any UCAN-compatible asymmetric key MAY be used for signatures, including RSA, EdDSA, ECDSA, and so on.
 
 The [ECDH handshake][ECDH Input] MUST use [X25519].
-
-All symmetric keys SHOULD be non-extractable where possible.
 
 ### 2.3.2 Symmetric Keys
 
@@ -95,10 +95,10 @@ AWAKE proceeds in one connection step, four communication rounds, and an OPTIONA
 2. Requestor broadcasts intent
     * a. Temporary DID
     * b. Provider authorization criteria
-3. Provider establishes point-to-point session
+3. Authorize Provider
     * a. Provider securely proves that they have sufficient rights
     * b. Provider transmits a session key via asymmetric key exchange
-4. Requestor authentication over MLS
+4. Authorize Requestor
     * a. Requestor sends an MLS connection request with their actual DID
     * b. Requestor sends instance validation (e.g. UCAN or out-of-band PIN)
 5. Secure session messages (zero or more rounds) via MLS
@@ -133,7 +133,7 @@ sequenceDiagram
 
 Payloads are encoding agnostic, but JSON is RECOMMENDED. For JSON, any fields that contain non-JSON values (such as ECDH public keys and encryption payloads) MUST be serialized as unpadded [Base64].
 
-All payloads MUST include the "AWAKE version" field `awv: "0..1.0"`. Payloads MUST also include a message type field `type` (see each stage for the value). All field keys and message type values MUST be lowercase and treated as case-sensitive.
+All payloads MUST include the "AWAKE version" field `awv: "0.1.0"`. Payloads MUST also include a message type field `type` (see each stage for the value). All field keys and message type values MUST be lowercase and treated as case-sensitive.
 
 # 5. Protocol Steps
 
@@ -203,7 +203,7 @@ If no capabilties are required, the `caps` field MUST be set to an empty map (`{
 }
 ```
 
-## 5.2 Provider Establishes Point-to-Point Session
+## 5.2 Authorize Provider 
 
 **NOTE: The Provider is not yet trusted at this step, and MUST be treated as a possible impersonator or [PITM](https://en.wikipedia.org/wiki/Man-in-the-middle_attack)**
 
@@ -233,6 +233,8 @@ The payload contains two encryption layers and a signature: the ECDH components,
 
 
 ``` mermaid
+%%{init: {'flowchart': {'curve': 'linear'}}}%%
+
 flowchart LR
     XCC["HKDF(X25519 Shared Secret) = (IV, Key)"]
     ReqTempSK["Requestor Temp\nX25519 Secret Key"]
@@ -321,7 +323,7 @@ To set the challenge as `ucan`, the `fct` section of the UCAN MUST include the f
 
 If more than one `awake/challenge` field is set, the lowest-indexed one MUST be used.
 
-## 5.3 MLS Handshake
+## 5.3 Authorize Requestor
 
 At this stage, the Provider has been validated, but the Requestor is still untrusted. The Requesytor now has enough trust in the Provider to intiate an MLS session.
 
@@ -391,11 +393,9 @@ flowchart LR
 
 # 6. Acknowledgements
 
-Many thanks to [Brian Ginsburg] for his exploration of AWAKE and suggestion to recommend backoff on PIN attempts.
+Thanks to [Quinn Wilton] and [Daniel Holmgren] for their many contributions to previous version of this spec. While the spec has evolved significantly since then, their thinking drove much of the philosophy underlying the current version.
 
-PRev coauthors:
-- Quinn
-- Daniel
+Many thanks to [Brian Ginsburg] for his exploration of AWAKE and suggestion to recommend backoff on requestor authorization attempts.
 
 # 7 FAQ
 
