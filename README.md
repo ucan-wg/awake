@@ -250,11 +250,11 @@ NB this is the first step of the double ratchet / KDF, as explained in [§1.5.1.
 
 ``` mermaid
 flowchart TD
-    XCC["ECDH + HKDF = XChaCha 🔑"]
+    XCC["HKDF(X25519) = ChaCha Key 🔑"]
 
-    subgraph Payload
-        IV["Random IV (cleartext)"]
-        subgraph Env [XChaCha-Poly1305 Envelope]
+    subgraph Clear Payload
+        IV["Random IV"]
+        subgraph Env [Encrypted XChaCha-Poly1305 Envelope]
             ucan["UCAN
                 iss: ResponderDID
                 aud:ReqECDH&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
