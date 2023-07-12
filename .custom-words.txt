@@ -15,6 +15,7 @@ Diffie
 ECDH
 ECDSA
 EdDSA
+Extensibility
 FIPS
 GCM
 GroupContext
@@ -98,6 +99,7 @@ pseudorandomBits
 pubsub
 requestor
 requestor's
+responder
 secondHalf
 sequenceDiagram
 sha

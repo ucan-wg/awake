@@ -26,15 +26,15 @@ Capability-based systems have a helpful philosophy towards a third path. By emph
 
 ## 1.1 Motivation
 
-Applications in the client/server model typically use a certificate authorty to root their trust. This presupposes that the client is able to dial the correct resource and ask for them to authenticate. The situation is somewhat more complex in P2P, [zero trust][ZTA], and [local-first] applications operating on open channels, where location is independent and eventual consistecy allows for unlimited forking of resource access.
+Applications in the client/server model typically use a certificate authority to root their trust. This presupposes that the client is able to dial the correct resource and ask for them to authenticate. The situation is somewhat more complex in P2P, [zero trust][ZTA], and [local-first] applications operating on open channels, where location is independent and eventual consistency allows for unlimited forking of resource access.
 
 Authorization on its own is no longer sufficient for this situation: it is entirely possible validate _who_ a responder, but the more relevant information is _what they have access to._ For instance, are they a member of a group message, can read from a particular database, or send email from a certain address.
 
 ## 1.2 Approach
 
-Rather than building multiple tools for specialized use cases, the appraoch is to take high quality components that solve for the general case and add the minimal number of additions to fit the AWAKE context. To the largest degree possible, AWAKE composes existing protocols and tools.
+Rather than building multiple tools for specialized use cases, the approach is to take high quality components that solve for the general case and add the minimal number of additions to fit the AWAKE context. To the largest degree possible, AWAKE composes existing protocols and tools.
 
-[MLS] is currently the best vetted secure channel that includes P2P group management. [UCAN] allows for the representation of authority both with and without delegation, and is well suited for P2P and local-first use cases. By combining standards these with a thin layer of standard cryptographic patterns, AWAKE attempts to take the advanatges of both while introducing the minimum of additional specification and implementation overhead.
+[MLS] is currently the best vetted secure channel that includes P2P group management. [UCAN] allows for the representation of authority both with and without delegation, and is well suited for P2P and local-first use cases. By combining standards these with a thin layer of standard cryptographic patterns, AWAKE attempts to take the advantages of both while introducing the minimum of additional specification and implementation overhead.
 
 # 2 Encryption
 
@@ -115,9 +115,9 @@ flowchart
     Next -.-> HKDF
 ```
 
-## 2.2 Messagaging Layer Security
+## 2.2 Messaging Layer Security
 
-After the AWAKE handshake, the protocol switches over to the Messaging Layer Security ([MLS]) protocol with UCAN credentials. MLS establishes an efficient post-comporimise security channel with group management.
+After the AWAKE handshake, the protocol switches over to the Messaging Layer Security ([MLS]) protocol with UCAN credentials. MLS establishes an efficient post-compromise security channel with group management.
 
 ## 3 Sequence
 
@@ -204,7 +204,7 @@ Where possible, it is RECOMMENDED that the private key be non-extractable.
 
 The Requestor MAY also include validation criteria expected from the Provider. This MUST be passed as a map of [UCAN capabilities]. The Provider MUST be able to prove access to these capabilities in [their response][Authorize Provider].
 
-If no capabilties are required, the `caps` field MUST be set to an empty map (`{}`).
+If no capabilities are required, the `caps` field MUST be set to an empty map (`{}`).
 
 ### 5.1.3 Payload
 
@@ -250,19 +250,7 @@ sequenceDiagram
 
 In this step, the Provider MUST prove that they have access to the requested resources. This establishes trust in the UCAN capabilities of the Provider, but MUST NOT actually delegate anything. This UCAN MUST contain the Requestor's temporary X25519 DID in the `aud` field. The `iss` field MUST contain the Provider's actual DID (i.e. not a temporary X25519 DID).
 
-
-
-
-
-
-This step starts the Double Ratchet. The Provider MUST generate a fresh ECDH X25519 key pair. This MUST be combined with the Requestor's ECDH public key to generate a 256-bit AES key, which MUST be used to encrypt the private payload. The Requestor SHOULD accept multiple concurrent connection attempts on this request DID, at least until the handshake is complete.
-
 The payload contains two encryption layers and a signature: the ECDH components, the XChaCha-Poly1305 envelope, and the capability proof signed by the Provider's "true" DID.
-
-
-
-
-
 
 ``` mermaid
 %%{init: {'flowchart': {'curve': 'linear'}}}%%
@@ -357,7 +345,7 @@ If more than one `awake/challenge` field is set, the lowest-indexed one MUST be 
 
 ## 5.3 Authorize Requestor
 
-At this stage, the Provider has been validated, but the Requestor is still untrusted. The Requesytor now has enough trust in the Provider to intiate an MLS session.
+At this stage, the Provider has been validated, but the Requestor is still untrusted. The Requesytor now has enough trust in the Provider to initiate an MLS session.
 
 The Requestor now MUST provide their actual DID over the secure channel, and MUST prove that they are a trusted party rather than a PITM, eavesdropper, or phisher. This is accomplished in the [MLS Credentials] step.
 
@@ -440,11 +428,11 @@ This is absolutely an option! However, it would require implementing a special c
 
 ## 8.2 Why not use FIPS-certified cryptography, such as P-256, RSA, and AES-GCM?
 
-AWAKE as specified uses the best practies at time of writing. They are used in MLS, TLS, and more.
+AWAKE as specified uses the best practices at time of writing. They are used in MLS, TLS, and more.
 
 RSA is widely deployed, but the key sizes are becoming quite large for an acceptable level of security. The NIST elliptic curves (such as P-256) have suspicious parameters that have lead to [concerns over the presence of a backdoor][SafeCurves]. AES is widely used, but is more susceptible to being used incorrectly than XChaCha.
 
-Many of the algoritms mentioned above are available as non-extractable in the [WebCrypto API]. This is a definite advantage for certain attack vectors, such as 
+Many of the algorithms mentioned above are available as non-extractable in the [WebCrypto API]. This is a definite advantage for certain attack vectors, such as 
 
 At time of writing, there is active effort in [bringing Ed25519/X25519 to the WebCrypto API][Secure Curves in WebCrypto]. Once this is complete, it is RECOMMENDED that all browser implementations make use of the non-extractable functionality.
 
@@ -495,4 +483,4 @@ Many of the cryptographic algorithms uses in AWAKE are susceptible to a hypothet
 
 [AWAKE KDF]: #212-key-derivation
 [Authorize Provider]: #52-authorize-provider
-[Provider challenge]: https://github.com/ucan-wg/awake/blob/mls/README.md#5221-challenge
+[Provider challenge]: #5221-challenge
