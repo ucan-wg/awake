@@ -135,7 +135,7 @@ AWAKE proceeds in one connection step, four communication rounds, and an OPTIONA
     * b. Requestor sends instance validation (e.g. UCAN or out-of-band PIN)
 4. Secure session messages (zero or more rounds) via MLS
 
-```mermaid
+``` mermaid
 sequenceDiagram
     participant Attacker
     participant Requestor
@@ -143,19 +143,20 @@ sequenceDiagram
     participant Group
 
     Note over Attacker, Group : AWAKE Handshake
-    Note over Attacker, Provider : 1. Initial (public) broadcast
-        Requestor -->> Attacker: 1a. Temp X25519 DID & Auth criterea
-        Requestor ->> Provider: 1a. Temp X25519 DID & Auth criterea
+    Note over Attacker, Provider : 1️⃣ Initial (public) broadcast
 
-    Note over Requestor, Provider: 2. Authorize Provider
-        Provider ->> Requestor: 2a. & 2b. (TempKey, ECDH🔐(Nullipotent UCAN))
+        Requestor -->> Attacker: Temp X25519 DID & Auth criterea
+        Requestor ->> Provider: (1a) Temp X25519 DID & Auth criterea
+
+    Note over Requestor, Provider: 2️⃣ Authorize Provider
+        Provider ->> Requestor: (2a) & (2b) <TempKey, ECDH🔐(Nullipotent UCAN)>
 
     Note over Requestor, Group: Start of MLS
-    Note over Requestor, Provider: 3. Authorize Requestor
-        Requestor ->> Provider: 3a. MLS Handshake (UCAN or Challenge & DID)
-        Provider  ->> Requestor: 3b.MLS Key Package
+    Note over Requestor, Provider: 3️⃣ Authorize Requestor
+        Requestor ->> Provider: (3a) MLS Handshake (UCAN or Challenge & DID)
+        Provider  ->> Requestor: (3b) MLS Key Package
 
-    Note over Requestor, Group: 4. MLS session
+    Note over Requestor, Group: 4️⃣ MLS session
         Group -->> Requestor: msg
         Requestor -->> Group: msg
         Requestor -->> Group: msg
