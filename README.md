@@ -34,7 +34,7 @@ Authorization on its own is no longer sufficient for this situation: it is entir
 
 Rather than building multiple tools for specialized use cases, the approach is to take high quality components that solve for the general case and add the minimal number of additions to fit the AWAKE context. To the largest degree possible, AWAKE composes existing protocols and tools.
 
-[MLS] is currently the best vetted secure channel that includes P2P group management. [UCAN] allows for the representation of authority both with and without delegation, and is well suited for P2P and local-first use cases. By combining standards these with a thin layer of standard cryptographic patterns, AWAKE attempts to take the advantages of both while introducing the minimum of additional specification and implementation overhead.
+[MLS] is currently the best vetted secure channel that includes P2P group management. [UCAN] allows for the representation of authority both with and without delegation, and is well suited for P2P and local-first use cases. By combining these standards with a thin layer of standard cryptographic patterns, AWAKE attempts to take the advantages of both while introducing the minimum of additional specification and implementation overhead.
 
 # 2 Encryption
 
