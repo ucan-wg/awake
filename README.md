@@ -282,7 +282,7 @@ Upon receipt, the Requestor MUST validate that the UCAN capabilities in the proo
 
 ### 5.2.1 Payload
 
-To start the Double Ratchet, the payload in this stage has the highest number of cleartext fields. Note that the value in the `iss` field contain the temporary ECDH DIDs, and MUST NOT use the Provider's actual long-term DID. Conversely, the UCAN inside the encrypted payload MUST use the Provider's long-term DID.
+To start the Double Ratchet, the payload in this stage has the highest number of cleartext fields. Note that the value in the `iss` field MUST contain the temporary ECDH DIDs, and MUST NOT use the Provider's actual long-term DID. Conversely, the UCAN inside the encrypted payload MUST use the Provider's long-term DID.
 
 | Field  | Value         | Description                                                         | Required |
 | ------ | ------------- | ------------------------------------------------------------------- | -------- |
