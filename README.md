@@ -434,7 +434,7 @@ AWAKE as specified uses the best practices at time of writing. They are used in 
 
 RSA is widely deployed, but the key sizes are becoming quite large for an acceptable level of security. The NIST elliptic curves (such as P-256) have suspicious parameters that have lead to [concerns over the presence of a backdoor][SafeCurves]. AES is widely used, but is more susceptible to being used incorrectly than XChaCha.
 
-Many of the algorithms mentioned above are available as non-extractable in the [WebCrypto API]. This is a definite advantage for certain attack vectors, such as a mallicious browser extension or supply chain attack. These situations will not prevent reading of your in-memory decrypted messages or impersonation, but does limit how and where they can access this data, and once removed from the environment they will be ejected by the MLS post-compromise security.
+Many of the algorithms mentioned above are available as non-extractable in the [WebCrypto API]. This is a definite advantage for certain attack vectors, such as a malicious browser extension or supply chain attack. These situations will not prevent reading of your in-memory decrypted messages or impersonation, but does limit how and where they can access this data, and once removed from the environment they will be ejected by the MLS post-compromise security.
 
 At time of writing, there is active effort in [bringing Ed25519/X25519 to the WebCrypto API][Secure Curves in WebCrypto]. Once this is complete, it is RECOMMENDED that all browser implementations make use of the non-extractable functionality.
 
