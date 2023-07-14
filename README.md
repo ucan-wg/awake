@@ -144,17 +144,16 @@ sequenceDiagram
 
     Note over Attacker, Group : AWAKE Handshake
     Note over Attacker, Provider : 1️⃣ Initial (public) broadcast
-
-        Requestor -->> Attacker: Temp X25519 DID & Auth criterea
-        Requestor ->> Provider: (1a) Temp X25519 DID & Auth criterea
+        Requestor -->> Attacker:  1️⃣Temp X25519 DID & Auth criterea
+        Requestor ->> Provider:  1️⃣ Temp X25519 DID & Auth criterea
 
     Note over Requestor, Provider: 2️⃣ Authorize Provider
-        Provider ->> Requestor: (2a) & (2b) <TempKey, ECDH🔐(Nullipotent UCAN)>
+        Provider ->> Requestor: 2️⃣ Temp X25519 DID & ECDH🔐(Nullipotent UCAN)
 
     Note over Requestor, Group: Start of MLS
     Note over Requestor, Provider: 3️⃣ Authorize Requestor
-        Requestor ->> Provider: (3a) MLS Handshake (UCAN or Challenge & DID)
-        Provider  ->> Requestor: (3b) MLS Key Package
+        Requestor ->> Provider:  3️⃣🅰️ MLS Handshake (UCAN or Challenge & DID)
+        Provider  ->> Requestor:  3️⃣🅱️ MLS Key Package
 
     Note over Requestor, Group: 4️⃣ MLS session
         Group -->> Requestor: msg
