@@ -75,6 +75,7 @@ concat
 const
 cryptographic
 currentSecret
+decrypted
 ecdh
 ecdhSecret
 extractable
