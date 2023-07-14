@@ -28,7 +28,7 @@ Capability-based systems have a helpful philosophy towards a third path. By emph
 
 Applications in the client/server model typically use a certificate authority to root their trust. This presupposes that the client is able to dial the correct resource and ask for them to authenticate. The situation is somewhat more complex in P2P, [zero trust][ZTA], and [local-first] applications operating on open channels, where location is independent and eventual consistency allows for unlimited forking of resource access.
 
-Authorization on its own is no longer sufficient for this situation: it is entirely possible validate _who_ a responder, but the more relevant information is _what they have access to._ For instance, are they a member of a group message, can read from a particular database, or send email from a certain address.
+Authorization on its own is no longer sufficient for this situation: it is entirely possible validate _who_ a responder, but the more relevant information is _what they have access to._ For instance, are they a member of a group message, can they read from a particular database, or send email from a certain address?
 
 ## 1.2 Approach
 
