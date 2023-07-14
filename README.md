@@ -123,17 +123,17 @@ After the AWAKE handshake, the protocol switches over to the Messaging Layer Sec
 
 AWAKE proceeds in one connection step, four communication rounds, and an OPTIONAL disconnection:
 
-1. Both parties subscribe to a well-known channel
-2. Requestor broadcasts intent
+0. Both parties subscribe to a well-known channel
+1. Requestor broadcasts intent
     * a. Temporary DID
     * b. Provider authorization criteria
-3. Authorize Provider
-    * a. Provider securely proves that they have sufficient rights
-    * b. Provider transmits a session key via asymmetric key exchange
-4. Authorize Requestor
+2. Authorize Provider
+    * a. Provider transmits a session key via asymmetric key exchange
+    * b. Provider securely proves that they have sufficient rights
+3. Authorize Requestor
     * a. Requestor sends an MLS connection request with their actual DID
     * b. Requestor sends instance validation (e.g. UCAN or out-of-band PIN)
-5. Secure session messages (zero or more rounds) via MLS
+4. Secure session messages (zero or more rounds) via MLS
 
 ```mermaid
 sequenceDiagram
@@ -143,15 +143,16 @@ sequenceDiagram
     participant Group
 
     Note over Attacker, Group : 1. Initial (public) broadcast
-        Requestor -->> Attacker: 1.1 Temp X25519 DID & Auth criterea
-        Requestor ->> Provider: 1.1 Temp X25519 DID & Auth criterea
+        Requestor -->> Attacker: 1a. Temp X25519 DID & Auth criterea
+        Requestor ->> Provider: 1a. Temp X25519 DID & Auth criterea
 
     Note over Requestor, Group: 2. Authorize Provider
-        Provider ->> Requestor: ECDH🔐(Nullipotent UCAN & channel info)
+        Provider ->> Requestor: 2a. & 2b. (TempKey, ECDH🔐(Nullipotent UCAN))
 
+    Note over Requestor, Group: Start of MLS
     Note over Requestor, Group: 3. Authorize Requestor
-        Requestor ->> Provider: MLS Handshake (UCAN or Challenge)
-        Provider  ->> Requestor: MLS Key Package
+        Requestor ->> Provider: 3a. MLS Handshake (UCAN or Challenge & DID)
+        Provider  ->> Requestor: 3b.MLS Key Package
 
     Note over Requestor, Group: 4. MLS session
         Group -->> Requestor: msg
