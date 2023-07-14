@@ -146,11 +146,11 @@ sequenceDiagram
         Requestor -->> Attacker: 1a. Temp X25519 DID & Auth criterea
         Requestor ->> Provider: 1a. Temp X25519 DID & Auth criterea
 
-    Note over Requestor, Group: 2. Authorize Provider
+    Note over Requestor, Provider: 2. Authorize Provider
         Provider ->> Requestor: 2a. & 2b. (TempKey, ECDH🔐(Nullipotent UCAN))
 
     Note over Requestor, Group: Start of MLS
-    Note over Requestor, Group: 3. Authorize Requestor
+    Note over Requestor, Provider: 3. Authorize Requestor
         Requestor ->> Provider: 3a. MLS Handshake (UCAN or Challenge & DID)
         Provider  ->> Requestor: 3b.MLS Key Package
 
