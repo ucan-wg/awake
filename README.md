@@ -442,7 +442,7 @@ Both HKDF and BLAKE3's KDF mode are widely accepted as being very good key deriv
 
 ## 8.4 Is AWAKE quantum-secure?
 
-Many of the cryptographic algorithms uses in AWAKE are susceptible to a hypothetical quantum computer of sufficient size. We are waiting for at least the NIST Post-Quantum Cryptography Standardization recommendations before updating the protocol's cryptography to account for this attack vector.
+Many of the cryptographic algorithms used in AWAKE are susceptible to a hypothetical quantum computer of sufficient size. We are waiting for at least the NIST Post-Quantum Cryptography Standardization recommendations before updating the protocol's cryptography to account for this attack vector.
 
 <!-- External Links -->
 
