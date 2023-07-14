@@ -142,7 +142,8 @@ sequenceDiagram
     participant Provider
     participant Group
 
-    Note over Attacker, Group : 1. Initial (public) broadcast
+    Note over Attacker, Group : AWAKE Handshake
+    Note over Attacker, Provider : 1. Initial (public) broadcast
         Requestor -->> Attacker: 1a. Temp X25519 DID & Auth criterea
         Requestor ->> Provider: 1a. Temp X25519 DID & Auth criterea
 
