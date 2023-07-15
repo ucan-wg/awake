@@ -1,0 +1,7 @@
+{
+  "ignorePatterns": [
+    {
+      "pattern": "^https://blogs.igalia.com/jfernandez/2023/06/20/secure-curves-in-the-web-cryptography-api/"
+    }
+  ]
+}
