@@ -414,7 +414,7 @@ flowchart LR
 
 # 6. MLS Session
 
-Proceed with MLS as normal.
+Proceed with MLS as normal. For more detail, please see the [MLS Add] spec.
 
 # 7. Acknowledgements
 
@@ -461,6 +461,7 @@ Many of the cryptographic algorithms used in AWAKE are susceptible to a hypothet
 [HKDF Randomness]: https://soatok.blog/2021/11/17/understanding-hkdf#how-should-you-introduce-randomness-into-hkdf
 [HKDF]: https://datatracker.ietf.org/doc/html/rfc5869
 [IV]: https://en.wikipedia.org/wiki/Initialization_vector
+[MLS Add]: https://messaginglayersecurity.rocks/mls-protocol/draft-ietf-mls-protocol.html#section-12.1.1
 [MLS Credentials]: https://messaginglayersecurity.rocks/mls-protocol/draft-ietf-mls-protocol.html#name-credentials
 [MLS Protocol Specification]: https://messaginglayersecurity.rocks/mls-protocol/draft-ietf-mls-protocol.html
 [MLS]: https://messaginglayersecurity.rocks/
